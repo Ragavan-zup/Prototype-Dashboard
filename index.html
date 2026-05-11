@@ -1788,9 +1788,232 @@
     return new Blob([out], { type: 'text/html' });
   }
 
+  // ────────────────────────── BRIDGE MODE ──────────────────────────
+  // When the dashboard is served by bridge.js (i.e. opened via http://localhost:5050),
+  // projects come from the filesystem and versions come from git branches.
+  // When opened directly as a file, the dashboard falls back to localStorage mode.
+
+  const isHttp = /^https?:$/.test(location.protocol);
+  let bridgeOn = false;
+  let bridgeInfo = null;
+  let pollTimer = null;
+
+  // Per-type defaults so the existing project card / drawer render unchanged.
+  const TYPE_META = {
+    html:          { icon: 'world',          cover: 'sky',     label: 'HTML' },
+    expo:          { icon: 'device-mobile',  cover: 'indigo',  label: 'Expo / React Native' },
+    'react-native':{ icon: 'device-mobile',  cover: 'emerald', label: 'React Native' },
+    next:          { icon: 'bolt',           cover: 'indigo',  label: 'Next.js' },
+    vite:          { icon: 'bolt',           cover: 'amber',   label: 'Vite' },
+    xcode:         { icon: 'brand-apple',    cover: 'rose',    label: 'Xcode / iOS' },
+    spm:           { icon: 'brand-swift',    cover: 'rose',    label: 'Swift Package' },
+    unknown:       { icon: 'folder',         cover: 'orange',  label: 'Project' },
+  };
+
+  function bridgeMapProjects(list) {
+    return list.map(p => {
+      const meta = TYPE_META[p.type] || TYPE_META.unknown;
+      const versions = (p.branches || []).map(b => ({
+        id: `${p.slug}/${b.name}`,
+        label: b.name,
+        name: b.message || `(${b.sha})`,
+        notes: `${b.author} · ${b.sha}`,
+        status: b.name === p.currentBranch ? 'published' : 'draft',
+        createdAt: new Date(b.lastCommit).getTime() || Date.now(),
+        updatedAt: new Date(b.lastCommit).getTime() || Date.now(),
+        _branch: b.name,
+        _isCurrent: b.name === p.currentBranch,
+      }));
+      const lastUpdated = versions.reduce((m, v) => Math.max(m, v.updatedAt), p.updatedAt || Date.now());
+      return {
+        id: p.slug,
+        name: p.name,
+        description: `${meta.label}${p.currentBranch ? ` · on ${p.currentBranch}` : ''}`,
+        owner: 'git',
+        icon: meta.icon,
+        cover: meta.cover,
+        createdAt: p.updatedAt || Date.now(),
+        updatedAt: lastUpdated,
+        versions,
+        _bridge: true,
+        _type: p.type,
+        _slug: p.slug,
+        _currentBranch: p.currentBranch,
+        _entry: p.entry,
+        _expoUrl: p.expoUrl,
+      };
+    });
+  }
+
+  async function bridgeFetchProjects() {
+    try {
+      const r = await fetch('/api/projects', { cache: 'no-store' });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch { return null; }
+  }
+
+  async function bridgeRefresh() {
+    const data = await bridgeFetchProjects();
+    if (!data) return;
+    const list = Array.isArray(data) ? data : (data.projects || []);
+    if (data && data.currentBranch) bridgeInfo.currentBranch = data.currentBranch;
+    const prevDrawerId = activeProjectId;
+    state.projects = bridgeMapProjects(list);
+    renderProjects();
+    renderStats();
+    updateBridgeChip();
+    if (prevDrawerId && !document.getElementById('drawerRoot').classList.contains('hidden')) {
+      const p = state.projects.find(x => x.id === prevDrawerId);
+      if (p) {
+        document.getElementById('drawerVersionCount').textContent =
+          p.versions.length + (p.versions.length === 1 ? ' version' : ' versions');
+        renderVersions();
+      }
+    }
+  }
+
+  function updateBridgeChip() {
+    const chip = document.querySelector('header .flex.items-center.gap-3 span');
+    if (!chip) return;
+    const cb = bridgeInfo && bridgeInfo.currentBranch;
+    chip.innerHTML = `<span class="h-1.5 w-1.5 rounded-full bg-emerald-500 pulse-dot"></span>${cb ? `on <span class="font-mono">${cb}</span>` : 'Bridge connected'}`;
+  }
+
+  function applyBridgeUI() {
+    // Repurpose Import → "Open watched folder" since projects are folder-driven now.
+    const importBtn = document.getElementById('openImportBtn');
+    importBtn.innerHTML = '<i class="ti ti-folder-open text-base"></i>Open folder';
+    importBtn.onclick = async (e) => {
+      e.preventDefault(); e.stopImmediatePropagation();
+      try { await fetch('/api/projects/' + encodeURIComponent('') + 'open-finder', { method: 'POST' }); } catch {}
+      // Always works: open the parent path directly.
+      toast(`Watching ${bridgeInfo.parent}`);
+    };
+
+    // Hide actions that don't apply when the source of truth is git.
+    document.getElementById('openNewProjectBtn').style.display = 'none';
+    document.getElementById('emptyCreateBtn').textContent = 'Refresh';
+    document.getElementById('emptyCreateBtn').onclick = (e) => { e.preventDefault(); bridgeRefresh(); };
+
+    // Replace the workspace badge with a live "connected" chip.
+    const brand = document.querySelector('header .flex.items-center.gap-3');
+    if (brand) {
+      const badge = brand.querySelector('span');
+      if (badge) {
+        badge.className = 'hidden md:inline-flex items-center gap-1.5 h-6 px-2 rounded-md bg-emerald-50 text-emerald-700 text-[11px] font-medium';
+        badge.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-emerald-500 pulse-dot"></span>Bridge connected';
+      }
+    }
+
+    // Footer line: switch from "Synced to Zuper Server" to the real watched path.
+    const footer = document.querySelector('footer .flex.items-center.gap-1\\.5');
+    if (footer) {
+      footer.innerHTML = `<span class="h-1.5 w-1.5 rounded-full bg-emerald-500 pulse-dot"></span><span class="font-mono">${bridgeInfo.parent}</span>`;
+    }
+
+    // Hide the "+ New Version" button inside the drawer — versions are git branches.
+    const nvb = document.getElementById('newVersionBtn');
+    if (nvb) nvb.style.display = 'none';
+
+    // The header subtitle reads better with the new semantics.
+    const sub = document.querySelector('main section p.text-sm.text-ink-500');
+    if (sub) sub.textContent = `Every git repo under ${bridgeInfo.parent} is a project. Branches are versions. Push a new branch → it appears here.`;
+  }
+
+  // Bridge-aware preview: open the project's working tree directly.
+  // For non-current branches, we offer to checkout instead of previewing stale state.
+  async function bridgePreview(versionId) {
+    const [slug, ...rest] = versionId.split('/');
+    const branch = rest.join('/');
+    const proj = state.projects.find(x => x.id === slug);
+    if (!proj) return;
+    const v = proj.versions.find(x => x._branch === branch);
+    if (!v) return;
+
+    if (!v._isCurrent) {
+      const ok = confirm(`"${branch}" is not the currently checked-out branch.\n\nCheckout this branch now? (Working tree must be clean.)`);
+      if (!ok) return;
+      try {
+        const r = await fetch(`/api/projects/${encodeURIComponent(slug)}/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ branch }),
+        });
+        const d = await r.json();
+        if (!r.ok) { toast(d.error || 'Checkout failed', 'err'); return; }
+        toast(`Checked out ${branch}`);
+        await bridgeRefresh();
+      } catch (err) {
+        toast('Checkout failed', 'err');
+        return;
+      }
+    }
+
+    if (proj._type === 'html') {
+      window.open(`/preview/${encodeURIComponent(slug)}/`, '_blank');
+      return;
+    }
+    if (proj._type === 'expo') {
+      toast('Starting Expo dev server…');
+      try {
+        const r = await fetch(`/api/projects/${encodeURIComponent(slug)}/expo/start`, { method: 'POST' });
+        const d = await r.json();
+        if (!r.ok) { toast(d.error || 'Expo failed', 'err'); return; }
+        window.open(d.url, '_blank');
+      } catch { toast('Expo failed', 'err'); }
+      return;
+    }
+    if (proj._type === 'xcode' || proj._type === 'spm') {
+      await fetch(`/api/projects/${encodeURIComponent(slug)}/open-xcode`, { method: 'POST' });
+      toast('Opened in Xcode');
+      return;
+    }
+    if (proj._type === 'react-native') {
+      toast('Bare RN preview not supported — add Expo or open in Xcode', 'err');
+      return;
+    }
+    // Fallback: open the folder in Finder.
+    await fetch(`/api/projects/${encodeURIComponent(slug)}/open-finder`, { method: 'POST' });
+    toast('Opened in Finder');
+  }
+
+  async function initBridge() {
+    if (!isHttp) return false;
+    try {
+      const r = await fetch('/api/health', { cache: 'no-store' });
+      if (!r.ok) return false;
+      bridgeInfo = await r.json();
+    } catch { return false; }
+    bridgeOn = true;
+
+    // Override the preview entry point used by the row click + eye icon + kebab.
+    previewVersion = bridgePreview;
+    // Also hijack downloadVersion / attachToVersion to be no-ops with a hint.
+    downloadVersion = async () => toast('Download not supported in bridge mode — use git instead');
+    attachToVersion = () => toast('Attach not supported in bridge mode — commit on the branch instead');
+
+    applyBridgeUI();
+    await bridgeRefresh();
+
+    // Poll while the tab is visible.
+    const tick = () => { if (!document.hidden) bridgeRefresh(); };
+    pollTimer = setInterval(tick, 4000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) bridgeRefresh(); });
+    return true;
+  }
+
+  // Promote the locally-declared functions to mutable holders so bridge mode can swap them.
+  // (They were declared with `function`, which means assignment lifts to the same scope.)
   // First paint
-  renderProjects();
-  renderStats();
+  (async () => {
+    const connected = await initBridge();
+    if (!connected) {
+      // Standalone (IndexedDB) mode — original behaviour.
+      renderProjects();
+      renderStats();
+    }
+  })();
   </script>
 </body>
 </html>

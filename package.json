@@ -1,0 +1,14 @@
+{
+  "name": "zuper-prototype-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local bridge + dashboard for tracking prototype repos as projects and branches as versions.",
+  "main": "bridge.js",
+  "scripts": {
+    "start": "node bridge.js",
+    "dev": "node --watch bridge.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
