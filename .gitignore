@@ -1,0 +1,6 @@
+.DS_Store
+node_modules/
+
+# Local working artifacts — not source
+Customer Portal - Zuper Pro*.html
+zuper-logo-data-uri.txt

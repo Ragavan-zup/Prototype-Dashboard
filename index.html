@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Design Projects · Zuper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.5.0/dist/tabler-icons.min.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50:  '#fff3ed',
+              100: '#ffe2d0',
+              200: '#ffbf9a',
+              300: '#ff9a64',
+              400: '#ff7438',
+              500: '#fd5000',
+              600: '#e44a19',
+              700: '#bd3a10',
+              800: '#962e0c',
+              900: '#7a280d',
+            },
+            ink: {
+              900: '#0f172a',
+              800: '#1e293b',
+              700: '#334155',
+              600: '#475569',
+              500: '#64748b',
+              400: '#94a3b8',
+              300: '#cbd5e1',
+              200: '#e2e8f0',
+              100: '#f1f5f9',
+              50:  '#f8fafc',
+            }
+          },
+          boxShadow: {
+            'card': '0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.06)',
+            'card-hover': '0 4px 12px rgba(15,23,42,0.08), 0 2px 4px rgba(15,23,42,0.06)',
+            'pop': '0 12px 32px rgba(15,23,42,0.12), 0 4px 12px rgba(15,23,42,0.06)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html, body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+    body { background-color: #f8fafc; color: #1e293b; }
+    .ti { font-family: 'tabler-icons' !important; line-height: 1; }
+    /* Subtle scrollbars */
+    .zuper-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+    .zuper-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+    .zuper-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    /* Drawer animation */
+    .drawer-enter { transform: translateX(100%); }
+    .drawer-enter-active { transform: translateX(0); transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1); }
+    .drawer-leave { transform: translateX(0); }
+    .drawer-leave-active { transform: translateX(100%); transition: transform 220ms cubic-bezier(0.4, 0, 1, 1); }
+    .fade-enter { opacity: 0; }
+    .fade-enter-active { opacity: 1; transition: opacity 200ms ease; }
+    .fade-leave-active { opacity: 0; transition: opacity 160ms ease; }
+    /* Cover patterns */
+    .cover-grid {
+      background-image:
+        linear-gradient(rgba(255,255,255,0.45) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.45) 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+    .cover-dots {
+      background-image: radial-gradient(rgba(255,255,255,0.55) 1.2px, transparent 1.2px);
+      background-size: 14px 14px;
+    }
+    .cover-diag {
+      background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.35) 0 1px, transparent 1px 12px);
+    }
+    /* Status dot pulse */
+    @keyframes softPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .pulse-dot { animation: softPulse 2s ease-in-out infinite; }
+
+    .input-focus:focus { outline: none; border-color: #fd5000; box-shadow: 0 0 0 3px rgba(253, 80, 0, 0.15); }
+
+    /* Modal entry */
+    .modal-pop {
+      animation: pop 220ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes pop {
+      from { opacity: 0; transform: translateY(8px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Empty state illustration */
+    .empty-grid {
+      background-image:
+        linear-gradient(#e2e8f0 1px, transparent 1px),
+        linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+      background-size: 24px 24px;
+      background-position: -1px -1px;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased">
+
+  <!-- ============== TOP BAR ============== -->
+  <header class="sticky top-0 z-40 w-full bg-white border-b border-ink-200">
+    <div class="h-14 px-4 md:px-6 flex items-center justify-between">
+
+      <!-- Brand -->
+      <div class="flex items-center gap-3 select-none">
+        <a href="#" class="flex items-center" aria-label="Zuper">
+          <!-- Official Zuper logo, lifted from the splash screen -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="108" height="34" viewBox="0 0 122 40" fill="none" aria-hidden="true">
+            <path d="M118.288 13.051v.328h-.933v2.431h-.376v-2.431h-.932v-.328h2.241zm.466 0h.535l.794 2.331.787-2.331h.522v2.759h-.345v-1.628-.279-.421l-.781 2.328h-.373l-.794-2.328v.086.307.307 1.628h-.345v-2.759zm-53.18 8.007c0 2.069-1.309 3.083-3.432 3.083s-3.432-1.034-3.432-3.083v-8.007h-2.921v8.379c0 3.524 2.603 5.372 6.364 5.372s6.363-1.848 6.363-5.372v-8.379h-2.931l-.01 8.007zm13.516-8.007h-7.762v13.772h2.994v-4.648h4.786c3.391 0 5.3-1.848 5.3-4.545s-1.909-4.579-5.317-4.579zm-.097 6.531h-4.689v-3.897h4.689c1.478 0 2.417.766 2.417 1.928-.014 1.217-.96 1.965-2.417 1.965v.003zm10.43-1.147v-2.769h8.58v-2.617H86.43v13.759h11.674v-2.531-.162h-6.298-2.382v-2.986h7.289v-2.693h-7.289zm19.459 3.323h.235c3.325 0 5.079-1.807 5.079-4.324 0-2.672-1.792-4.383-5.179-4.383h-8.228V26.81h2.994v-5.741l1.004.903 5.373 4.828h4.064l-5.607-5.041h.265zm-5.099-2.262v-3.814h4.899c1.516 0 2.521.745 2.521 1.886 0 1.2-1.036 1.928-2.521 1.928h-4.899zm-58.865 4.632l7.399-11.079H41.358l-1.733 2.617 7.31-.014-7.31 11.145 13.048.021 1.789-2.707-9.544.017z" fill="#39383c"/>
+            <g fill="#fd5000">
+              <path d="M25.062 13.055l-6.336 9.614h5.107 1.55 5.11l6.339-9.614H25.062z"/>
+              <path d="M16.346 2.068L9.105 13.055h15.959l7.244-10.986H16.346z"/>
+            </g>
+            <g fill="#39383c">
+              <path d="M6.339 17.227L0 26.84h11.771l6.339-9.614H6.339z"/>
+              <path d="M11.771 26.84L4.527 37.826H20.49l7.244-10.986H11.771z"/>
+            </g>
+          </svg>
+        </a>
+        <span class="hidden md:inline-flex items-center h-6 px-2 rounded-md bg-ink-100 text-ink-600 text-[11px] font-medium uppercase tracking-wide">
+          Design Lab
+        </span>
+      </div>
+
+      <!-- Global search -->
+      <div class="hidden md:flex flex-1 max-w-md mx-6">
+        <div class="relative w-full">
+          <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 text-base"></i>
+          <input id="globalSearch" type="text" placeholder="Search projects, versions, owners…"
+                 class="w-full h-9 pl-9 pr-10 bg-ink-100 border border-transparent hover:border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus transition" />
+          <kbd class="hidden lg:inline absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-medium text-ink-500 bg-white border border-ink-200 rounded">⌘K</kbd>
+        </div>
+      </div>
+
+      <!-- Right cluster -->
+      <div class="flex items-center gap-1.5">
+        <button class="hidden sm:inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-ink-100 text-ink-500" title="What's new">
+          <i class="ti ti-sparkles text-lg"></i>
+        </button>
+        <button class="hidden sm:inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-ink-100 text-ink-500 relative" title="Notifications">
+          <i class="ti ti-bell text-lg"></i>
+          <span class="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-brand-500"></span>
+        </button>
+        <span class="hidden sm:block w-px h-6 bg-ink-200 mx-1"></span>
+        <button class="flex items-center gap-2 h-9 pl-1 pr-2 rounded-lg hover:bg-ink-100" title="Account">
+          <span class="h-7 w-7 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white text-xs font-semibold flex items-center justify-center">RT</span>
+          <span class="hidden md:flex flex-col items-start leading-tight">
+            <span class="text-[12px] font-medium text-ink-800">Ragavan T</span>
+            <span class="text-[10px] text-ink-500">Zuper Design</span>
+          </span>
+          <i class="ti ti-chevron-down text-ink-400 text-sm hidden md:inline"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============== PAGE ============== -->
+  <main class="max-w-7xl mx-auto px-4 md:px-6 py-8">
+
+    <!-- Page header -->
+    <section class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-7">
+      <div>
+        <div class="flex items-center gap-2 text-[12px] text-ink-500 mb-1.5">
+          <i class="ti ti-bookmark text-sm"></i>
+          <span>Workspace</span>
+          <i class="ti ti-chevron-right text-xs"></i>
+          <span class="text-ink-700 font-medium">Design Lab</span>
+        </div>
+        <h1 class="text-[26px] md:text-[28px] font-semibold text-ink-900 tracking-tight leading-tight">Design Projects</h1>
+        <p class="mt-1 text-sm text-ink-500 max-w-2xl">
+          A home for every prototype your team builds. Group experiments under a project, ship variations as versions, and keep the source of truth on Zuper Server.
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="openImportBtn" class="inline-flex items-center gap-2 h-10 px-3.5 rounded-lg border border-ink-200 bg-white hover:bg-ink-50 text-sm font-medium text-ink-700 transition">
+          <i class="ti ti-cloud-upload text-base"></i>
+          Import
+        </button>
+        <button id="openNewProjectBtn" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium shadow-card transition">
+          <i class="ti ti-plus text-base"></i>
+          New Project
+        </button>
+      </div>
+    </section>
+
+    <!-- Stats strip -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
+      <div class="bg-white border border-ink-200 rounded-xl p-4 shadow-card">
+        <div class="flex items-center gap-2 text-ink-500 text-[12px] font-medium"><i class="ti ti-folders text-sm"></i> Projects</div>
+        <div class="mt-1.5 text-2xl font-semibold text-ink-900" data-stat="projects">0</div>
+      </div>
+      <div class="bg-white border border-ink-200 rounded-xl p-4 shadow-card">
+        <div class="flex items-center gap-2 text-ink-500 text-[12px] font-medium"><i class="ti ti-versions text-sm"></i> Versions</div>
+        <div class="mt-1.5 text-2xl font-semibold text-ink-900" data-stat="versions">0</div>
+      </div>
+      <div class="bg-white border border-ink-200 rounded-xl p-4 shadow-card">
+        <div class="flex items-center gap-2 text-ink-500 text-[12px] font-medium"><i class="ti ti-users text-sm"></i> Contributors</div>
+        <div class="mt-1.5 text-2xl font-semibold text-ink-900" data-stat="contributors">0</div>
+      </div>
+      <div class="bg-white border border-ink-200 rounded-xl p-4 shadow-card">
+        <div class="flex items-center gap-2 text-ink-500 text-[12px] font-medium"><i class="ti ti-server-2 text-sm"></i> Storage</div>
+        <div class="mt-1.5 flex items-baseline gap-1.5">
+          <span class="text-2xl font-semibold text-ink-900" data-stat="storage">—</span>
+          <span class="text-[11px] text-ink-500">on Zuper Server</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Toolbar -->
+    <section class="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
+      <div class="relative flex-1">
+        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 text-base"></i>
+        <input id="filterSearch" type="text" placeholder="Filter projects by name, description, owner…"
+               class="w-full h-10 pl-10 pr-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus transition" />
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="relative">
+          <select id="sortSelect" class="appearance-none h-10 pl-3 pr-9 bg-white border border-ink-200 rounded-lg text-sm text-ink-700 input-focus">
+            <option value="updated">Recently updated</option>
+            <option value="created">Recently created</option>
+            <option value="name">Name (A→Z)</option>
+            <option value="versions">Most versions</option>
+          </select>
+          <i class="ti ti-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm pointer-events-none"></i>
+        </div>
+        <div class="inline-flex p-0.5 bg-ink-100 rounded-lg">
+          <button data-view="grid" class="view-toggle px-2.5 h-9 rounded-md text-ink-700 text-sm flex items-center gap-1.5 bg-white shadow-sm">
+            <i class="ti ti-layout-grid text-base"></i><span class="hidden md:inline">Grid</span>
+          </button>
+          <button data-view="list" class="view-toggle px-2.5 h-9 rounded-md text-ink-500 text-sm flex items-center gap-1.5">
+            <i class="ti ti-list text-base"></i><span class="hidden md:inline">List</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Projects grid -->
+    <section id="projectsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- cards injected here -->
+    </section>
+
+    <!-- Empty state -->
+    <section id="emptyState" class="hidden">
+      <div class="relative bg-white border border-dashed border-ink-200 rounded-2xl py-16 px-6 text-center overflow-hidden">
+        <div class="absolute inset-0 empty-grid opacity-60 pointer-events-none"></div>
+        <div class="relative">
+          <div class="mx-auto h-14 w-14 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center">
+            <i class="ti ti-color-swatch text-3xl"></i>
+          </div>
+          <h3 class="mt-4 text-lg font-semibold text-ink-900">No projects yet</h3>
+          <p class="mt-1 text-sm text-ink-500 max-w-sm mx-auto">
+            Spin up your first prototype project. Each project can hold any number of versions — variations, iterations, or A/B tests.
+          </p>
+          <button id="emptyCreateBtn" class="mt-5 inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium shadow-card transition">
+            <i class="ti ti-plus text-base"></i> Create your first project
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="mt-12 pb-6 flex items-center justify-between text-[12px] text-ink-400">
+      <div class="flex items-center gap-1.5">
+        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 pulse-dot"></span>
+        <span>Synced to Zuper Server · just now</span>
+      </div>
+      <div>v0.1 · prototype dashboard</div>
+    </footer>
+  </main>
+
+  <!-- ============== PROJECT DRAWER ============== -->
+  <div id="drawerRoot" class="fixed inset-0 z-50 hidden">
+    <div id="drawerScrim" class="absolute inset-0 bg-ink-900/30 backdrop-blur-[2px] opacity-0 transition-opacity duration-200"></div>
+    <aside id="drawerPanel" class="absolute right-0 top-0 h-full w-full max-w-[640px] bg-white shadow-pop translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col">
+
+      <!-- Drawer header -->
+      <div id="drawerHeader" class="relative h-32 overflow-hidden">
+        <!-- gets project cover background via JS -->
+        <div class="absolute inset-0 cover-grid"></div>
+        <button id="closeDrawerBtn" class="absolute top-3 right-3 h-9 w-9 rounded-lg bg-white/90 hover:bg-white text-ink-700 flex items-center justify-center shadow-card">
+          <i class="ti ti-x text-lg"></i>
+        </button>
+      </div>
+
+      <div class="px-6 -mt-7 relative">
+        <div id="drawerIcon" class="h-14 w-14 rounded-2xl bg-white border border-ink-200 shadow-card flex items-center justify-center text-2xl"></div>
+      </div>
+
+      <div class="px-6 py-5 border-b border-ink-200">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <h2 id="drawerTitle" class="text-xl font-semibold text-ink-900 leading-tight truncate"></h2>
+            <p id="drawerDesc" class="mt-1 text-sm text-ink-500"></p>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button id="renameProjectBtn" class="h-9 w-9 rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-600 flex items-center justify-center" title="Rename">
+              <i class="ti ti-pencil text-base"></i>
+            </button>
+            <button id="deleteProjectBtn" class="h-9 w-9 rounded-lg border border-ink-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-ink-600 flex items-center justify-center" title="Delete project">
+              <i class="ti ti-trash text-base"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-4 flex items-center flex-wrap gap-x-4 gap-y-2 text-[12px] text-ink-500">
+          <span class="inline-flex items-center gap-1.5"><i class="ti ti-versions text-sm"></i><span id="drawerVersionCount">0 versions</span></span>
+          <span class="inline-flex items-center gap-1.5"><i class="ti ti-user text-sm"></i><span id="drawerOwner"></span></span>
+          <span class="inline-flex items-center gap-1.5"><i class="ti ti-clock text-sm"></i><span id="drawerUpdated"></span></span>
+          <span class="inline-flex items-center gap-1.5"><i class="ti ti-server-2 text-sm"></i>Zuper Server</span>
+        </div>
+      </div>
+
+      <!-- Versions list -->
+      <div class="flex-1 overflow-y-auto zuper-scrollbar">
+        <div class="px-6 pt-5 pb-2 flex items-center justify-between sticky top-0 bg-white z-10 border-b border-ink-100">
+          <div>
+            <h3 class="text-sm font-semibold text-ink-800">Versions</h3>
+            <p class="text-[12px] text-ink-500">Each version is its own repo on Zuper Server.</p>
+          </div>
+          <button id="newVersionBtn" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-[13px] font-medium shadow-card transition">
+            <i class="ti ti-plus text-base"></i> New Version
+          </button>
+        </div>
+        <ul id="versionsList" class="px-6 py-3 space-y-2.5"></ul>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ============== NEW PROJECT MODAL ============== -->
+  <div id="newProjectModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-ink-900/40 backdrop-blur-sm modal-backdrop"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="modal-pop w-full max-w-lg bg-white rounded-2xl shadow-pop border border-ink-200">
+        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="h-9 w-9 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center"><i class="ti ti-folder-plus text-xl"></i></div>
+            <div>
+              <h3 class="text-base font-semibold text-ink-900">New design project</h3>
+              <p class="text-[12px] text-ink-500">Group related prototypes and their variations under one roof.</p>
+            </div>
+          </div>
+          <button class="closeModalBtn h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-x text-base"></i></button>
+        </div>
+
+        <form id="newProjectForm" class="px-6 py-5 space-y-4">
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Project name</label>
+            <input name="name" required maxlength="60" placeholder="e.g. Instant Estimation"
+                   class="w-full h-10 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus" />
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Description <span class="text-ink-400 font-normal">(optional)</span></label>
+            <textarea name="description" rows="2" maxlength="200" placeholder="What problem is this project exploring?"
+                      class="w-full px-3 py-2 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus resize-none"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Icon</label>
+              <div id="iconPicker" class="grid grid-cols-6 gap-1.5"></div>
+            </div>
+            <div>
+              <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Cover color</label>
+              <div id="colorPicker" class="grid grid-cols-6 gap-1.5"></div>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Owner</label>
+            <input name="owner" value="Ragavan T"
+                   class="w-full h-10 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 input-focus" />
+          </div>
+        </form>
+
+        <div class="px-6 py-4 bg-ink-50 rounded-b-2xl flex items-center justify-between gap-3">
+          <span class="text-[11px] text-ink-500 inline-flex items-center gap-1.5"><i class="ti ti-server-2"></i> Will be created on Zuper Server</span>
+          <div class="flex items-center gap-2">
+            <button type="button" class="closeModalBtn h-9 px-3.5 rounded-lg text-sm text-ink-700 hover:bg-ink-100">Cancel</button>
+            <button type="submit" form="newProjectForm" class="h-9 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Create project</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== NEW VERSION MODAL ============== -->
+  <div id="newVersionModal" class="fixed inset-0 z-[55] hidden">
+    <div class="absolute inset-0 bg-ink-900/40 backdrop-blur-sm modal-backdrop"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="modal-pop w-full max-w-md bg-white rounded-2xl shadow-pop border border-ink-200">
+        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="h-9 w-9 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center"><i class="ti ti-git-branch text-xl"></i></div>
+            <div>
+              <h3 class="text-base font-semibold text-ink-900">New version</h3>
+              <p class="text-[12px] text-ink-500">Spawn a new repo for this variation.</p>
+            </div>
+          </div>
+          <button class="closeModalBtn h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-x text-base"></i></button>
+        </div>
+
+        <form id="newVersionForm" class="px-6 py-5 space-y-4">
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Version name</label>
+            <input name="name" required maxlength="60" placeholder="e.g. Two-step intake"
+                   class="w-full h-10 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus" />
+            <p class="mt-1 text-[11px] text-ink-400" id="versionLabelPreview">Will be tagged as v0.1 · main</p>
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Notes <span class="text-ink-400 font-normal">(optional)</span></label>
+            <textarea name="notes" rows="2" maxlength="200" placeholder="What are you trying in this version?"
+                      class="w-full px-3 py-2 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus resize-none"></textarea>
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">HTML file <span class="text-ink-400 font-normal">(optional — drop your prototype here)</span></label>
+            <input id="versionFileInput" type="file" accept=".html,.htm,text/html" class="sr-only">
+            <div id="dropEmpty" class="border-2 border-dashed border-ink-200 hover:border-brand-300 hover:bg-brand-50/40 rounded-lg p-4 text-center transition cursor-pointer">
+              <i class="ti ti-file-upload text-2xl text-ink-400"></i>
+              <p class="mt-1 text-[13px] text-ink-700">Drop your HTML file here, or <span class="text-brand-600 font-medium">browse</span></p>
+              <p class="text-[11px] text-ink-400">SingleFile saves work great. Stored locally on your device.</p>
+            </div>
+            <div id="dropFilled" class="hidden border border-ink-200 rounded-lg px-3 py-2.5 flex items-center gap-3 bg-ink-50">
+              <div class="h-9 w-9 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center shrink-0"><i class="ti ti-file-type-html text-xl"></i></div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-medium text-ink-800 truncate" id="dropFileName"></div>
+                <div class="text-[11px] text-ink-500" id="dropFileSize"></div>
+              </div>
+              <button type="button" id="dropClear" class="h-7 w-7 rounded hover:bg-ink-200 text-ink-500 flex items-center justify-center" title="Remove"><i class="ti ti-x text-base"></i></button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Status</label>
+            <div class="grid grid-cols-3 gap-1.5">
+              <label class="status-pick cursor-pointer">
+                <input type="radio" name="status" value="draft" checked class="peer sr-only">
+                <div class="h-9 px-3 border border-ink-200 rounded-lg flex items-center justify-center text-[13px] text-ink-700 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">Draft</div>
+              </label>
+              <label class="status-pick cursor-pointer">
+                <input type="radio" name="status" value="review" class="peer sr-only">
+                <div class="h-9 px-3 border border-ink-200 rounded-lg flex items-center justify-center text-[13px] text-ink-700 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">In review</div>
+              </label>
+              <label class="status-pick cursor-pointer">
+                <input type="radio" name="status" value="published" class="peer sr-only">
+                <div class="h-9 px-3 border border-ink-200 rounded-lg flex items-center justify-center text-[13px] text-ink-700 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">Published</div>
+              </label>
+            </div>
+          </div>
+        </form>
+
+        <div class="px-6 py-4 bg-ink-50 rounded-b-2xl flex items-center justify-end gap-2">
+          <button type="button" class="closeModalBtn h-9 px-3.5 rounded-lg text-sm text-ink-700 hover:bg-ink-100">Cancel</button>
+          <button type="submit" form="newVersionForm" class="h-9 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Create version</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== CONFIRM MODAL ============== -->
+  <div id="confirmModal" class="fixed inset-0 z-[60] hidden">
+    <div class="absolute inset-0 bg-ink-900/40 backdrop-blur-sm modal-backdrop"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="modal-pop w-full max-w-sm bg-white rounded-2xl shadow-pop border border-ink-200">
+        <div class="p-6">
+          <div class="h-10 w-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center mb-3"><i class="ti ti-alert-triangle text-xl"></i></div>
+          <h3 id="confirmTitle" class="text-base font-semibold text-ink-900">Are you sure?</h3>
+          <p id="confirmBody" class="mt-1 text-sm text-ink-500">This action cannot be undone.</p>
+        </div>
+        <div class="px-6 py-4 bg-ink-50 rounded-b-2xl flex items-center justify-end gap-2">
+          <button id="confirmCancel" class="h-9 px-3.5 rounded-lg text-sm text-ink-700 hover:bg-ink-100">Cancel</button>
+          <button id="confirmOk" class="h-9 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden input for attaching/replacing files on existing versions -->
+  <input id="attachFileInput" type="file" accept=".html,.htm,text/html" class="sr-only">
+
+  <!-- Hidden folder picker for project import -->
+  <input id="importFolderInput" type="file" webkitdirectory directory multiple class="sr-only">
+
+  <!-- Floating kebab menu -->
+  <div id="kebabMenu" class="hidden fixed z-[65] min-w-[180px] bg-white border border-ink-200 rounded-lg shadow-pop py-1 text-sm"></div>
+
+  <!-- ============== IMPORT PROJECT MODAL ============== -->
+  <div id="importProjectModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-ink-900/40 backdrop-blur-sm modal-backdrop"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="modal-pop w-full max-w-lg bg-white rounded-2xl shadow-pop border border-ink-200">
+        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="h-9 w-9 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center"><i class="ti ti-cloud-upload text-xl"></i></div>
+            <div>
+              <h3 class="text-base font-semibold text-ink-900">Import a project folder</h3>
+              <p class="text-[12px] text-ink-500">Bring a Claude Code (or any static) project under Zuper Server.</p>
+            </div>
+          </div>
+          <button class="closeModalBtn h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-x text-base"></i></button>
+        </div>
+
+        <form id="importProjectForm" class="px-6 py-5 space-y-4">
+          <div class="border border-ink-200 rounded-lg px-3 py-2.5 flex items-center gap-3 bg-ink-50">
+            <div class="h-9 w-9 rounded-lg bg-white border border-ink-200 text-brand-500 flex items-center justify-center shrink-0"><i class="ti ti-folder text-xl"></i></div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[13px] font-medium text-ink-800 truncate" id="importFolderName">—</div>
+              <div class="text-[11px] text-ink-500" id="importFolderMeta">—</div>
+            </div>
+            <button type="button" id="importChooseAgain" class="h-8 px-2.5 rounded-lg border border-ink-200 hover:bg-white text-[12px] text-ink-700">Change</button>
+          </div>
+
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Project name</label>
+            <input name="name" required maxlength="60"
+                   class="w-full h-10 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus" />
+          </div>
+
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Description <span class="text-ink-400 font-normal">(optional)</span></label>
+            <textarea name="description" rows="2" maxlength="200"
+                      class="w-full px-3 py-2 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus resize-none"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Entry point <span class="text-ink-400 font-normal">(this file is shown when previewing)</span></label>
+            <div class="relative">
+              <select id="importEntrySelect" name="entry" required
+                      class="appearance-none w-full h-10 pl-3 pr-9 bg-white border border-ink-200 rounded-lg text-sm text-ink-700 input-focus"></select>
+              <i class="ti ti-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm pointer-events-none"></i>
+            </div>
+            <p id="importEntryHint" class="mt-1 text-[11px] text-ink-400">Auto-selected the first index.html found.</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Icon</label>
+              <div id="importIconPicker" class="grid grid-cols-6 gap-1.5"></div>
+            </div>
+            <div>
+              <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Cover color</label>
+              <div id="importColorPicker" class="grid grid-cols-6 gap-1.5"></div>
+            </div>
+          </div>
+        </form>
+
+        <div class="px-6 py-4 bg-ink-50 rounded-b-2xl flex items-center justify-between gap-3">
+          <span class="text-[11px] text-ink-500 inline-flex items-center gap-1.5"><i class="ti ti-server-2"></i> Initial version <span class="font-mono">v0.1</span> will be created on Zuper Server</span>
+          <div class="flex items-center gap-2">
+            <button type="button" class="closeModalBtn h-9 px-3.5 rounded-lg text-sm text-ink-700 hover:bg-ink-100">Cancel</button>
+            <button type="submit" form="importProjectForm" id="importSubmitBtn" class="h-9 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium inline-flex items-center gap-2">
+              <span id="importSubmitLabel">Import project</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== TOAST ============== -->
+  <div id="toastRoot" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-[70] flex flex-col gap-2 items-center pointer-events-none"></div>
+
+  <script>
+  // -------- DATA LAYER --------
+  const STORAGE_KEY = 'zuper.designLab.v1';
+  const DB_NAME = 'zuper.designLab.files';
+  const DB_STORE = 'versionFiles';
+
+  // IndexedDB: stores HTML blobs keyed by versionId. Lets us hold many-MB SingleFile pages
+  // without bloating localStorage (which caps around 5–10 MB per origin).
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbPut(key, blob) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).put(blob, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function idbGet(key) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, 'readonly');
+      const req = tx.objectStore(DB_STORE).get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbDel(key) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  function fmtBytes(n) {
+    if (n == null) return '';
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  const ICONS = [
+    'rocket','bolt','calculator','file-invoice','wand','clipboard-list',
+    'device-mobile','map-pin','users','chart-bar','briefcase','tools'
+  ];
+  const COVERS = [
+    { name: 'orange',  hex: '#fd5000', grad: 'from-brand-500 to-brand-700',     pat: 'cover-grid' },
+    { name: 'indigo',  hex: '#4f46e5', grad: 'from-indigo-500 to-indigo-700',   pat: 'cover-dots' },
+    { name: 'emerald', hex: '#10b981', grad: 'from-emerald-500 to-emerald-700', pat: 'cover-diag' },
+    { name: 'amber',   hex: '#f59e0b', grad: 'from-amber-500 to-amber-600',     pat: 'cover-grid' },
+    { name: 'rose',    hex: '#e11d48', grad: 'from-rose-500 to-rose-700',       pat: 'cover-dots' },
+    { name: 'sky',     hex: '#0284c7', grad: 'from-sky-500 to-sky-700',         pat: 'cover-diag' },
+  ];
+
+  const STATUS_STYLES = {
+    draft:     { label: 'Draft',     classes: 'bg-ink-100 text-ink-700' },
+    review:    { label: 'In review', classes: 'bg-amber-50 text-amber-700' },
+    published: { label: 'Published', classes: 'bg-emerald-50 text-emerald-700' },
+  };
+
+  function uid(prefix='id') {
+    return prefix + '_' + Math.random().toString(36).slice(2, 10);
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return seed();
+  }
+
+  function saveState(state) {
+    state.updatedAt = Date.now();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function seed() {
+    const now = Date.now();
+    const day = 24*60*60*1000;
+    return {
+      projects: [
+        {
+          id: uid('p'), name: 'Instant Estimation',
+          description: 'On-the-spot quote builder for field techs. Exploring single-screen vs guided flows.',
+          icon: 'calculator', cover: 'orange',
+          owner: 'Ragavan T', createdAt: now - 14*day, updatedAt: now - 1*day,
+          versions: [
+            { id: uid('v'), label: 'v0.1', name: 'Single-screen calculator', status: 'draft',     notes: 'Everything on one canvas.',     createdAt: now - 14*day, updatedAt: now - 14*day },
+            { id: uid('v'), label: 'v0.2', name: 'Two-step intake',          status: 'review',    notes: 'Collect job type, then price.', createdAt: now - 8*day,  updatedAt: now - 3*day },
+            { id: uid('v'), label: 'v1.0', name: 'Guided wizard',            status: 'published', notes: 'Shipped to internal pilot.',     createdAt: now - 4*day,  updatedAt: now - 1*day },
+          ]
+        },
+        {
+          id: uid('p'), name: 'Customer Portal Redesign',
+          description: 'Refreshed self-serve portal — modern hierarchy, light theme, fewer clicks to job status.',
+          icon: 'users', cover: 'indigo',
+          owner: 'Ragavan T', createdAt: now - 30*day, updatedAt: now - 2*day,
+          versions: [
+            { id: uid('v'), label: 'v0.1', name: 'Light theme exploration', status: 'review',    notes: 'Light bg, slate text.',         createdAt: now - 30*day, updatedAt: now - 20*day },
+            { id: uid('v'), label: 'v0.2', name: 'Compact dashboard',       status: 'draft',     notes: 'Density-first card layout.',     createdAt: now - 10*day, updatedAt: now - 2*day },
+          ]
+        },
+        {
+          id: uid('p'), name: 'Field Worker Mobile',
+          description: 'Phone-first job execution — punch list, photos, signature, in one screen.',
+          icon: 'device-mobile', cover: 'emerald',
+          owner: 'Ragavan T', createdAt: now - 7*day, updatedAt: now - 6*60*60*1000,
+          versions: [
+            { id: uid('v'), label: 'v0.1', name: 'Bottom sheet flow',  status: 'draft', notes: 'Sheet rises with task detail.', createdAt: now - 7*day, updatedAt: now - 6*60*60*1000 },
+          ]
+        }
+      ],
+      updatedAt: now
+    };
+  }
+
+  let state = loadState();
+  let view = 'grid';
+  let activeProjectId = null;
+
+  // -------- HELPERS --------
+  function fmtRelative(ts) {
+    const diff = Date.now() - ts;
+    const min = 60*1000, hr = 60*min, day = 24*hr;
+    if (diff < min) return 'just now';
+    if (diff < hr)  return Math.floor(diff/min) + 'm ago';
+    if (diff < day) return Math.floor(diff/hr) + 'h ago';
+    if (diff < 30*day) return Math.floor(diff/day) + 'd ago';
+    const d = new Date(ts);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function coverFor(name) {
+    return COVERS.find(c => c.name === name) || COVERS[0];
+  }
+
+  function nextVersionLabel(project) {
+    const labels = (project.versions || []).map(v => v.label);
+    let major = 0, minor = 1;
+    labels.forEach(l => {
+      const m = /^v(\d+)\.(\d+)$/.exec(l);
+      if (m) {
+        const M = +m[1], n = +m[2];
+        if (M > major || (M === major && n >= minor)) {
+          major = M; minor = n + 1;
+        }
+      }
+    });
+    return `v${major}.${minor}`;
+  }
+
+  // -------- RENDER --------
+  function renderStats() {
+    const projects = state.projects;
+    const versions = projects.reduce((s,p) => s + p.versions.length, 0);
+    const owners = new Set(projects.map(p => p.owner));
+    projects.forEach(p => p.versions.forEach(v => owners.add(v.owner || p.owner)));
+
+    document.querySelector('[data-stat="projects"]').textContent = projects.length;
+    document.querySelector('[data-stat="versions"]').textContent = versions;
+    document.querySelector('[data-stat="contributors"]').textContent = owners.size;
+
+    // Fake size estimate based on counts
+    const mb = (projects.length * 1.4 + versions * 0.6).toFixed(1);
+    document.querySelector('[data-stat="storage"]').textContent = mb + ' MB';
+  }
+
+  function renderProjects() {
+    const container = document.getElementById('projectsContainer');
+    const empty = document.getElementById('emptyState');
+    const q = document.getElementById('filterSearch').value.trim().toLowerCase();
+    const sortBy = document.getElementById('sortSelect').value;
+
+    let list = state.projects.slice();
+    if (q) {
+      list = list.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.description||'').toLowerCase().includes(q) ||
+        (p.owner||'').toLowerCase().includes(q) ||
+        p.versions.some(v => v.name.toLowerCase().includes(q))
+      );
+    }
+    list.sort((a,b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      if (sortBy === 'created') return b.createdAt - a.createdAt;
+      if (sortBy === 'versions') return b.versions.length - a.versions.length;
+      return b.updatedAt - a.updatedAt;
+    });
+
+    if (state.projects.length === 0) {
+      container.classList.add('hidden');
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+    container.classList.remove('hidden');
+
+    if (view === 'grid') {
+      container.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4';
+      container.innerHTML = list.map(p => projectCardHTML(p)).join('') + newProjectCardHTML();
+    } else {
+      container.className = 'flex flex-col bg-white border border-ink-200 rounded-xl overflow-hidden divide-y divide-ink-100 shadow-card';
+      container.innerHTML = list.map(p => projectRowHTML(p)).join('');
+    }
+
+    container.querySelectorAll('[data-project-id]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('[data-noopen]')) return;
+        openDrawer(el.dataset.projectId);
+      });
+    });
+    const newCard = container.querySelector('[data-new-card]');
+    if (newCard) newCard.addEventListener('click', () => openModal('newProjectModal'));
+  }
+
+  function projectCardHTML(p) {
+    const c = coverFor(p.cover);
+    const last = p.versions[0] ? p.versions.slice().sort((a,b)=>b.updatedAt-a.updatedAt)[0] : null;
+    return `
+      <article data-project-id="${p.id}"
+        class="group cursor-pointer bg-white border border-ink-200 rounded-xl overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all">
+        <div class="relative h-24 bg-gradient-to-br ${c.grad} overflow-hidden">
+          <div class="absolute inset-0 ${c.pat} opacity-70"></div>
+          <div class="absolute top-3 right-3 inline-flex items-center gap-1 h-6 px-2 rounded-md bg-white/90 backdrop-blur text-[11px] font-medium text-ink-700">
+            <i class="ti ti-versions text-[13px]"></i>${p.versions.length}
+          </div>
+        </div>
+        <div class="px-4 pt-3 pb-4 -mt-6 relative">
+          <div class="h-11 w-11 rounded-xl bg-white border border-ink-200 shadow-card flex items-center justify-center text-ink-700">
+            <i class="ti ti-${escapeHtml(p.icon)} text-xl"></i>
+          </div>
+          <h3 class="mt-3 text-[15px] font-semibold text-ink-900 leading-snug truncate">${escapeHtml(p.name)}</h3>
+          <p class="mt-1 text-[13px] text-ink-500 line-clamp-2 min-h-[2.6em]">${escapeHtml(p.description || '—')}</p>
+
+          <div class="mt-3 flex items-center justify-between text-[11.5px] text-ink-500">
+            <span class="inline-flex items-center gap-1.5"><i class="ti ti-clock text-sm"></i>${fmtRelative(p.updatedAt)}</span>
+            <span class="inline-flex items-center gap-1.5">
+              ${last ? `<span class="inline-flex items-center gap-1 px-1.5 h-5 rounded ${STATUS_STYLES[last.status].classes} text-[10.5px] font-medium">${STATUS_STYLES[last.status].label}</span>` : ''}
+              <span class="text-ink-400">${last ? last.label : ''}</span>
+            </span>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function projectRowHTML(p) {
+    const c = coverFor(p.cover);
+    const last = p.versions.slice().sort((a,b)=>b.updatedAt-a.updatedAt)[0];
+    return `
+      <div data-project-id="${p.id}" class="flex items-center gap-4 px-4 py-3 hover:bg-ink-50 cursor-pointer">
+        <div class="h-10 w-10 rounded-lg flex items-center justify-center text-white" style="background:${c.hex}">
+          <i class="ti ti-${escapeHtml(p.icon)} text-lg"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-semibold text-ink-900 truncate">${escapeHtml(p.name)}</h3>
+            <span class="inline-flex items-center gap-1 h-5 px-1.5 rounded bg-ink-100 text-ink-600 text-[10.5px] font-medium">${p.versions.length} versions</span>
+          </div>
+          <p class="text-[12.5px] text-ink-500 truncate">${escapeHtml(p.description || '—')}</p>
+        </div>
+        <div class="hidden md:block text-[12px] text-ink-500 w-32">${escapeHtml(p.owner)}</div>
+        <div class="hidden md:block text-[12px] text-ink-500 w-28">${fmtRelative(p.updatedAt)}</div>
+        <div class="text-ink-400"><i class="ti ti-chevron-right"></i></div>
+      </div>
+    `;
+  }
+
+  function newProjectCardHTML() {
+    return `
+      <button data-new-card type="button"
+        class="group bg-white border-2 border-dashed border-ink-200 hover:border-brand-300 hover:bg-brand-50/30 rounded-xl flex flex-col items-center justify-center gap-2 min-h-[230px] transition-colors text-ink-500 hover:text-brand-600">
+        <div class="h-11 w-11 rounded-xl bg-ink-100 group-hover:bg-brand-100 flex items-center justify-center"><i class="ti ti-plus text-xl"></i></div>
+        <div class="text-sm font-medium">New project</div>
+        <div class="text-[12px] text-ink-400 group-hover:text-brand-600/80">Create a fresh prototype space</div>
+      </button>
+    `;
+  }
+
+  // -------- DRAWER --------
+  function openDrawer(projectId) {
+    activeProjectId = projectId;
+    const p = state.projects.find(x => x.id === projectId);
+    if (!p) return;
+    const c = coverFor(p.cover);
+
+    const root = document.getElementById('drawerRoot');
+    const scrim = document.getElementById('drawerScrim');
+    const panel = document.getElementById('drawerPanel');
+    const header = document.getElementById('drawerHeader');
+
+    document.getElementById('drawerTitle').textContent = p.name;
+    document.getElementById('drawerDesc').textContent = p.description || 'No description yet.';
+    document.getElementById('drawerOwner').textContent = p.owner;
+    document.getElementById('drawerUpdated').textContent = 'Updated ' + fmtRelative(p.updatedAt);
+    document.getElementById('drawerVersionCount').textContent = p.versions.length + (p.versions.length === 1 ? ' version' : ' versions');
+    document.getElementById('drawerIcon').innerHTML = `<i class="ti ti-${escapeHtml(p.icon)}" style="color:${c.hex}"></i>`;
+
+    header.style.background = `linear-gradient(135deg, ${c.hex} 0%, ${shade(c.hex, -20)} 100%)`;
+    header.querySelector('div').className = `absolute inset-0 ${c.pat}`;
+
+    renderVersions();
+
+    root.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      scrim.style.opacity = '1';
+      panel.style.transform = 'translateX(0)';
+    });
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    const root = document.getElementById('drawerRoot');
+    const scrim = document.getElementById('drawerScrim');
+    const panel = document.getElementById('drawerPanel');
+    scrim.style.opacity = '0';
+    panel.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      root.classList.add('hidden');
+      activeProjectId = null;
+      document.body.style.overflow = '';
+    }, 280);
+  }
+
+  function renderVersions() {
+    const p = state.projects.find(x => x.id === activeProjectId);
+    if (!p) return;
+    const list = document.getElementById('versionsList');
+    if (p.versions.length === 0) {
+      list.innerHTML = `
+        <li class="py-8 text-center">
+          <div class="mx-auto h-10 w-10 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center mb-2"><i class="ti ti-git-branch text-xl"></i></div>
+          <div class="text-sm font-medium text-ink-800">No versions yet</div>
+          <div class="text-[12px] text-ink-500">Create the first repo for this project.</div>
+        </li>`;
+      return;
+    }
+    const sorted = p.versions.slice().sort((a,b) => b.updatedAt - a.updatedAt);
+    list.innerHTML = sorted.map(v => versionRowHTML(v)).join('');
+    list.querySelectorAll('[data-del-version]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const vid = btn.dataset.delVersion;
+        confirmDialog({
+          title: 'Delete version?',
+          body: 'This removes the version and its attached HTML file.',
+          okLabel: 'Delete',
+          onOk: async () => {
+            const proj = state.projects.find(x => x.id === activeProjectId);
+            proj.versions = proj.versions.filter(v => v.id !== vid);
+            proj.updatedAt = Date.now();
+            saveState(state);
+            try { await idbDel(vid); } catch (e) {}
+            renderVersions();
+            renderProjects();
+            renderStats();
+            toast('Version deleted');
+          }
+        });
+      });
+    });
+    list.querySelectorAll('[data-status-toggle]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const vid = btn.dataset.statusToggle;
+        const proj = state.projects.find(x => x.id === activeProjectId);
+        const v = proj.versions.find(x => x.id === vid);
+        const order = ['draft','review','published'];
+        v.status = order[(order.indexOf(v.status) + 1) % order.length];
+        v.updatedAt = Date.now();
+        proj.updatedAt = Date.now();
+        saveState(state);
+        renderVersions();
+        renderProjects();
+      });
+    });
+    list.querySelectorAll('[data-preview-version]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await previewVersion(btn.dataset.previewVersion);
+      });
+    });
+    list.querySelectorAll('[data-download-version]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await downloadVersion(btn.dataset.downloadVersion);
+      });
+    });
+    list.querySelectorAll('[data-attach-version], [data-replace-version]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const vid = btn.dataset.attachVersion || btn.dataset.replaceVersion;
+        attachToVersion(vid);
+      });
+    });
+    list.querySelectorAll('[data-kebab-version]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openKebab(btn, btn.dataset.kebabVersion);
+      });
+    });
+    list.querySelectorAll('[data-row-version]').forEach(li => {
+      li.addEventListener('click', async (e) => {
+        if (e.target.closest('button')) return;
+        const vid = li.dataset.rowVersion;
+        if (li.dataset.rowAction === 'preview') {
+          await previewVersion(vid);
+        } else {
+          attachToVersion(vid);
+        }
+      });
+    });
+  }
+
+  function openKebab(anchor, vid) {
+    const proj = state.projects.find(x => x.id === activeProjectId);
+    const v = proj && proj.versions.find(x => x.id === vid);
+    if (!v) return;
+    const menu = document.getElementById('kebabMenu');
+    const hasFile = !!v.file;
+    const item = (icon, label, handler, danger=false) => {
+      const cls = danger
+        ? 'w-full text-left px-3 py-1.5 hover:bg-red-50 text-red-600 flex items-center gap-2'
+        : 'w-full text-left px-3 py-1.5 hover:bg-ink-50 text-ink-700 flex items-center gap-2';
+      return `<button class="${cls}" data-mi="${handler}"><i class="ti ti-${icon} text-base text-ink-500"></i>${label}</button>`;
+    };
+    const isBundle = hasFile && v.file.kind === 'bundle';
+    menu.innerHTML = [
+      hasFile ? item('eye', 'Preview', 'preview') : '',
+      (hasFile && !isBundle) ? item('download', 'Download', 'download') : '',
+      isBundle ? '' : (hasFile ? item('refresh', 'Replace HTML', 'attach') : item('paperclip', 'Attach HTML', 'attach')),
+      item('copy', 'Duplicate version', 'duplicate'),
+      item('pencil', 'Rename', 'rename'),
+      '<div class="my-1 h-px bg-ink-100"></div>',
+      item('trash', 'Delete', 'delete', true),
+    ].filter(Boolean).join('');
+
+    // Position below the kebab button, right-aligned
+    const r = anchor.getBoundingClientRect();
+    menu.style.visibility = 'hidden';
+    menu.classList.remove('hidden');
+    const mw = menu.offsetWidth;
+    const mh = menu.offsetHeight;
+    let top = r.bottom + 4;
+    let left = r.right - mw;
+    if (top + mh > window.innerHeight - 8) top = r.top - mh - 4;
+    if (left < 8) left = 8;
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+    menu.style.visibility = '';
+
+    menu.querySelectorAll('[data-mi]').forEach(b => {
+      b.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const action = b.dataset.mi;
+        closeKebab();
+        if (action === 'preview') await previewVersion(vid);
+        else if (action === 'download') await downloadVersion(vid);
+        else if (action === 'attach') attachToVersion(vid);
+        else if (action === 'duplicate') duplicateVersion(vid);
+        else if (action === 'rename') renameVersion(vid);
+        else if (action === 'delete') {
+          confirmDialog({
+            title: 'Delete version?',
+            body: 'This removes the version and its attached HTML file.',
+            okLabel: 'Delete',
+            onOk: async () => {
+              const p = state.projects.find(x => x.id === activeProjectId);
+              p.versions = p.versions.filter(x => x.id !== vid);
+              p.updatedAt = Date.now();
+              saveState(state);
+              try { await idbDel(vid); } catch (e) {}
+              renderVersions(); renderProjects(); renderStats();
+              toast('Version deleted');
+            }
+          });
+        }
+      });
+    });
+  }
+  function closeKebab() {
+    document.getElementById('kebabMenu').classList.add('hidden');
+  }
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('kebabMenu');
+    if (menu.classList.contains('hidden')) return;
+    if (!menu.contains(e.target)) closeKebab();
+  });
+  window.addEventListener('resize', closeKebab);
+  window.addEventListener('scroll', closeKebab, true);
+
+  async function duplicateVersion(vid) {
+    const p = state.projects.find(x => x.id === activeProjectId);
+    const v = p && p.versions.find(x => x.id === vid);
+    if (!v) return;
+    const now = Date.now();
+    const copy = {
+      ...v,
+      id: uid('v'),
+      label: nextVersionLabel(p),
+      name: v.name + ' (copy)',
+      createdAt: now,
+      updatedAt: now,
+    };
+    if (v.file) {
+      try {
+        const blob = await idbGet(vid);
+        if (blob) await idbPut(copy.id, blob);
+        copy.file = { ...v.file, storedAt: now };
+      } catch (e) { console.error(e); }
+    }
+    p.versions.unshift(copy);
+    p.updatedAt = now;
+    saveState(state);
+    renderVersions(); renderProjects(); renderStats();
+    toast(`${copy.label} duplicated from ${v.label}`);
+  }
+
+  function renameVersion(vid) {
+    const p = state.projects.find(x => x.id === activeProjectId);
+    const v = p && p.versions.find(x => x.id === vid);
+    if (!v) return;
+    const nv = prompt('Rename version', v.name);
+    if (!nv || !nv.trim()) return;
+    v.name = nv.trim();
+    v.updatedAt = Date.now();
+    p.updatedAt = Date.now();
+    saveState(state);
+    renderVersions(); renderProjects();
+    toast('Version renamed');
+  }
+
+  async function previewVersion(vid) {
+    const stored = await idbGet(vid);
+    if (!stored) { toast('No file stored for this version', 'err'); return; }
+    let blob;
+    try {
+      blob = (stored instanceof Blob) ? stored : await rewriteBundleToBlob(stored);
+    } catch (err) {
+      console.error(err);
+      toast('Could not build preview', 'err');
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    if (!win) toast('Preview blocked — allow popups to view', 'err');
+  }
+
+  async function downloadVersion(vid) {
+    const proj = state.projects.find(x => x.id === activeProjectId);
+    const v = proj && proj.versions.find(x => x.id === vid);
+    if (!v) return;
+    const blob = await idbGet(vid);
+    if (!blob) { toast('No file stored for this version', 'err'); return; }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (v.file && v.file.name) || `${proj.name}-${v.label}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5_000);
+  }
+
+  function attachToVersion(vid) {
+    const input = document.getElementById('attachFileInput');
+    input.value = '';
+    input.onchange = async () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const proj = state.projects.find(x => x.id === activeProjectId);
+      const v = proj && proj.versions.find(x => x.id === vid);
+      if (!v) return;
+      try {
+        await idbPut(vid, new Blob([await file.arrayBuffer()], { type: 'text/html' }));
+        v.file = { name: file.name, size: file.size, storedAt: Date.now() };
+        v.updatedAt = Date.now();
+        proj.updatedAt = Date.now();
+        saveState(state);
+        renderVersions();
+        renderProjects();
+        renderStats();
+        toast(`Attached ${file.name}`);
+      } catch (err) {
+        console.error(err);
+        toast('Could not store file (storage may be full)', 'err');
+      }
+    };
+    input.click();
+  }
+
+  function versionRowHTML(v) {
+    const s = STATUS_STYLES[v.status];
+    const hasFile = !!v.file;
+    const rowAction = hasFile ? 'preview' : 'attach';
+    return `
+      <li data-row-version="${v.id}" data-row-action="${rowAction}"
+          class="group relative bg-white border border-ink-200 rounded-xl p-3.5 hover:border-ink-300 hover:shadow-card cursor-pointer transition">
+        <div class="flex items-start gap-3">
+          <div class="h-10 w-10 rounded-lg bg-ink-100 text-ink-700 flex items-center justify-center font-mono text-[11px] font-semibold shrink-0">${escapeHtml(v.label)}</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h4 class="text-sm font-semibold text-ink-900 truncate">${escapeHtml(v.name)}</h4>
+              <button data-status-toggle="${v.id}" title="Click to cycle status" class="inline-flex items-center gap-1 h-5 px-1.5 rounded ${s.classes} text-[10.5px] font-medium hover:opacity-80">
+                <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>${s.label}
+              </button>
+            </div>
+            ${v.notes ? `<p class="mt-1 text-[12.5px] text-ink-500 line-clamp-2">${escapeHtml(v.notes)}</p>` : ''}
+            <div class="mt-2 flex items-center flex-wrap gap-x-3 gap-y-1 text-[11.5px] text-ink-500">
+              <span class="inline-flex items-center gap-1"><i class="ti ti-git-branch text-sm"></i>${escapeHtml(v.label)} · main</span>
+              <span class="inline-flex items-center gap-1"><i class="ti ti-clock text-sm"></i>${fmtRelative(v.updatedAt)}</span>
+              ${hasFile
+                ? (v.file.kind === 'bundle'
+                    ? `<span class="inline-flex items-center gap-1 text-ink-600"><i class="ti ti-folder text-sm text-brand-500"></i><span class="truncate max-w-[160px]">${escapeHtml(v.file.name)}</span><span class="text-ink-400">· ${v.file.fileCount} files · ${fmtBytes(v.file.size)}</span></span>`
+                    : `<span class="inline-flex items-center gap-1 text-ink-600"><i class="ti ti-file-type-html text-sm text-brand-500"></i><span class="truncate max-w-[180px]">${escapeHtml(v.file.name)}</span><span class="text-ink-400">· ${fmtBytes(v.file.size)}</span></span>`)
+                : `<span class="inline-flex items-center gap-1 text-amber-600"><i class="ti ti-paperclip text-sm"></i>No file attached</span>`}
+            </div>
+          </div>
+          <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
+            ${hasFile
+              ? `<button data-preview-version="${v.id}" class="h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-800 flex items-center justify-center" title="Preview"><i class="ti ti-eye text-base"></i></button>
+                 ${v.file.kind === 'bundle' ? '' : `<button data-replace-version="${v.id}" class="h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-800 flex items-center justify-center" title="Replace HTML"><i class="ti ti-refresh text-base"></i></button>`}`
+              : `<button data-attach-version="${v.id}" class="h-8 w-8 rounded-lg hover:bg-brand-50 text-ink-500 hover:text-brand-600 flex items-center justify-center" title="Attach HTML"><i class="ti ti-paperclip text-base"></i></button>`}
+            <button data-kebab-version="${v.id}" class="h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-800 flex items-center justify-center" title="More"><i class="ti ti-dots-vertical text-base"></i></button>
+            <button data-del-version="${v.id}" class="h-8 w-8 rounded-lg hover:bg-red-50 hover:text-red-600 text-ink-500 flex items-center justify-center" title="Delete"><i class="ti ti-trash text-base"></i></button>
+          </div>
+        </div>
+      </li>
+    `;
+  }
+
+  // -------- ICON & COLOR PICKERS --------
+  let pickedIcon = ICONS[0];
+  let pickedCover = COVERS[0].name;
+  let pendingVersionFile = null;
+
+  function buildPickers() {
+    const ip = document.getElementById('iconPicker');
+    ip.innerHTML = ICONS.map(name => `
+      <button type="button" data-icon="${name}"
+        class="icon-pick h-9 w-full rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-700 flex items-center justify-center">
+        <i class="ti ti-${name} text-lg"></i>
+      </button>`).join('');
+    ip.querySelectorAll('.icon-pick').forEach(b => {
+      b.addEventListener('click', () => {
+        pickedIcon = b.dataset.icon;
+        ip.querySelectorAll('.icon-pick').forEach(x => x.classList.remove('border-brand-500','bg-brand-50','text-brand-700'));
+        b.classList.add('border-brand-500','bg-brand-50','text-brand-700');
+      });
+    });
+    ip.querySelector(`[data-icon="${pickedIcon}"]`).classList.add('border-brand-500','bg-brand-50','text-brand-700');
+
+    const cp = document.getElementById('colorPicker');
+    cp.innerHTML = COVERS.map(c => `
+      <button type="button" data-cover="${c.name}"
+        class="color-pick h-9 w-full rounded-lg border-2 border-transparent flex items-center justify-center"
+        style="background:${c.hex}" title="${c.name}"></button>`).join('');
+    cp.querySelectorAll('.color-pick').forEach(b => {
+      b.addEventListener('click', () => {
+        pickedCover = b.dataset.cover;
+        cp.querySelectorAll('.color-pick').forEach(x => x.classList.remove('ring-2','ring-offset-2','ring-ink-900'));
+        b.classList.add('ring-2','ring-offset-2','ring-ink-900');
+      });
+    });
+    cp.querySelector(`[data-cover="${pickedCover}"]`).classList.add('ring-2','ring-offset-2','ring-ink-900');
+  }
+
+  // -------- MODALS --------
+  function openModal(id) {
+    const m = document.getElementById(id);
+    m.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    if (id === 'newProjectModal') {
+      pickedIcon = ICONS[Math.floor(Math.random()*ICONS.length)];
+      pickedCover = COVERS[Math.floor(Math.random()*COVERS.length)].name;
+      buildPickers();
+      const f = document.getElementById('newProjectForm');
+      f.reset();
+      f.querySelector('[name="owner"]').value = 'Ragavan T';
+      setTimeout(() => f.querySelector('[name="name"]').focus(), 50);
+    } else if (id === 'newVersionModal') {
+      const f = document.getElementById('newVersionForm');
+      f.reset();
+      pendingVersionFile = null;
+      document.getElementById('versionFileInput').value = '';
+      document.getElementById('dropEmpty').classList.remove('hidden');
+      document.getElementById('dropFilled').classList.add('hidden');
+      const proj = state.projects.find(x => x.id === activeProjectId);
+      document.getElementById('versionLabelPreview').textContent = `Will be tagged as ${nextVersionLabel(proj)} · main`;
+      setTimeout(() => f.querySelector('[name="name"]').focus(), 50);
+    }
+  }
+  function closeAllModals() {
+    ['newProjectModal','newVersionModal','importProjectModal','confirmModal'].forEach(id => {
+      document.getElementById(id).classList.add('hidden');
+    });
+    if (!document.getElementById('drawerRoot').classList.contains('hidden')) return; // keep scroll lock for drawer
+    document.body.style.overflow = '';
+  }
+
+  // -------- CONFIRM --------
+  let confirmHandler = null;
+  function confirmDialog({ title, body, okLabel='Delete', onOk }) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmBody').textContent = body;
+    document.getElementById('confirmOk').textContent = okLabel;
+    confirmHandler = onOk;
+    openModal('confirmModal');
+  }
+
+  // -------- TOAST --------
+  function toast(msg, kind='ok') {
+    const root = document.getElementById('toastRoot');
+    const el = document.createElement('div');
+    const icon = kind === 'ok' ? 'ti-check' : 'ti-alert-circle';
+    const accent = kind === 'ok' ? 'text-emerald-500' : 'text-red-500';
+    el.className = 'pointer-events-auto inline-flex items-center gap-2 px-3.5 h-10 rounded-lg bg-ink-900 text-white text-sm shadow-pop';
+    el.innerHTML = `<i class="ti ${icon} ${accent} text-base"></i><span>${escapeHtml(msg)}</span>`;
+    root.appendChild(el);
+    setTimeout(() => el.style.opacity = '0', 1800);
+    setTimeout(() => el.remove(), 2200);
+  }
+
+  // -------- COLOR UTIL --------
+  function shade(hex, percent) {
+    let R = parseInt(hex.substring(1,3), 16);
+    let G = parseInt(hex.substring(3,5), 16);
+    let B = parseInt(hex.substring(5,7), 16);
+    R = Math.max(0, Math.min(255, R + Math.round(R * percent / 100)));
+    G = Math.max(0, Math.min(255, G + Math.round(G * percent / 100)));
+    B = Math.max(0, Math.min(255, B + Math.round(B * percent / 100)));
+    return '#' + [R,G,B].map(v => v.toString(16).padStart(2,'0')).join('');
+  }
+
+  // -------- WIRING --------
+  document.getElementById('openNewProjectBtn').addEventListener('click', () => openModal('newProjectModal'));
+  document.getElementById('emptyCreateBtn').addEventListener('click', () => openModal('newProjectModal'));
+  document.getElementById('openImportBtn').addEventListener('click', () => {
+    const inp = document.getElementById('importFolderInput');
+    inp.value = '';
+    inp.click();
+  });
+  document.getElementById('importChooseAgain').addEventListener('click', () => {
+    document.getElementById('importFolderInput').click();
+  });
+  document.getElementById('importFolderInput').addEventListener('change', () => {
+    const files = Array.from(document.getElementById('importFolderInput').files || []);
+    if (files.length === 0) return;
+    prepareImportModal(files);
+  });
+  document.getElementById('closeDrawerBtn').addEventListener('click', closeDrawer);
+  document.getElementById('drawerScrim').addEventListener('click', closeDrawer);
+  document.querySelectorAll('.closeModalBtn').forEach(b => b.addEventListener('click', closeAllModals));
+  document.querySelectorAll('.modal-backdrop').forEach(b => b.addEventListener('click', closeAllModals));
+
+  document.getElementById('confirmCancel').addEventListener('click', closeAllModals);
+  document.getElementById('confirmOk').addEventListener('click', () => {
+    if (confirmHandler) { confirmHandler(); confirmHandler = null; }
+    closeAllModals();
+  });
+
+  document.getElementById('newVersionBtn').addEventListener('click', () => openModal('newVersionModal'));
+
+  document.getElementById('renameProjectBtn').addEventListener('click', () => {
+    const p = state.projects.find(x => x.id === activeProjectId);
+    const nv = prompt('Rename project', p.name);
+    if (!nv || !nv.trim()) return;
+    p.name = nv.trim();
+    p.updatedAt = Date.now();
+    saveState(state);
+    document.getElementById('drawerTitle').textContent = p.name;
+    renderProjects();
+    renderStats();
+    toast('Project renamed');
+  });
+
+  document.getElementById('deleteProjectBtn').addEventListener('click', () => {
+    const p = state.projects.find(x => x.id === activeProjectId);
+    confirmDialog({
+      title: `Delete "${p.name}"?`,
+      body: 'All versions and their attached HTML files will be removed.',
+      okLabel: 'Delete project',
+      onOk: async () => {
+        const versionIds = (p.versions || []).map(v => v.id);
+        state.projects = state.projects.filter(x => x.id !== activeProjectId);
+        saveState(state);
+        await Promise.all(versionIds.map(id => idbDel(id).catch(() => {})));
+        closeDrawer();
+        renderProjects();
+        renderStats();
+        toast('Project deleted');
+      }
+    });
+  });
+
+  document.getElementById('newProjectForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const now = Date.now();
+    const p = {
+      id: uid('p'),
+      name: (fd.get('name')||'').trim(),
+      description: (fd.get('description')||'').trim(),
+      owner: (fd.get('owner')||'').trim() || 'Unknown',
+      icon: pickedIcon,
+      cover: pickedCover,
+      createdAt: now,
+      updatedAt: now,
+      versions: []
+    };
+    state.projects.unshift(p);
+    saveState(state);
+    closeAllModals();
+    renderProjects();
+    renderStats();
+    openDrawer(p.id);
+    toast(`"${p.name}" created on Zuper Server`);
+  });
+
+  document.getElementById('newVersionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const proj = state.projects.find(x => x.id === activeProjectId);
+    if (!proj) return;
+    const fd = new FormData(e.target);
+    const now = Date.now();
+    const v = {
+      id: uid('v'),
+      label: nextVersionLabel(proj),
+      name: (fd.get('name')||'').trim(),
+      notes: (fd.get('notes')||'').trim(),
+      status: fd.get('status') || 'draft',
+      createdAt: now,
+      updatedAt: now
+    };
+    if (pendingVersionFile) {
+      try {
+        await idbPut(v.id, new Blob([await pendingVersionFile.arrayBuffer()], { type: 'text/html' }));
+        v.file = { name: pendingVersionFile.name, size: pendingVersionFile.size, storedAt: now };
+      } catch (err) {
+        console.error(err);
+        toast('Could not store file (storage may be full)', 'err');
+        return;
+      }
+    }
+    proj.versions.unshift(v);
+    proj.updatedAt = now;
+    saveState(state);
+    pendingVersionFile = null;
+    closeAllModals();
+    renderVersions();
+    renderProjects();
+    renderStats();
+    toast(`${v.label} added to "${proj.name}"`);
+  });
+
+  document.querySelectorAll('.view-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      view = btn.dataset.view;
+      document.querySelectorAll('.view-toggle').forEach(b => {
+        const active = b.dataset.view === view;
+        b.classList.toggle('bg-white', active);
+        b.classList.toggle('shadow-sm', active);
+        b.classList.toggle('text-ink-700', active);
+        b.classList.toggle('text-ink-500', !active);
+      });
+      renderProjects();
+    });
+  });
+
+  ['filterSearch','sortSelect'].forEach(id => {
+    document.getElementById(id).addEventListener('input', renderProjects);
+  });
+  document.getElementById('sortSelect').addEventListener('change', renderProjects);
+
+  document.getElementById('globalSearch').addEventListener('input', (e) => {
+    document.getElementById('filterSearch').value = e.target.value;
+    renderProjects();
+  });
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      document.getElementById('globalSearch').focus();
+    }
+    if (e.key === 'Escape') {
+      if (!document.getElementById('kebabMenu').classList.contains('hidden')) { closeKebab(); return; }
+      if (!document.getElementById('confirmModal').classList.contains('hidden')) { closeAllModals(); return; }
+      if (!document.getElementById('newProjectModal').classList.contains('hidden')) { closeAllModals(); return; }
+      if (!document.getElementById('newVersionModal').classList.contains('hidden')) { closeAllModals(); return; }
+      if (!document.getElementById('drawerRoot').classList.contains('hidden')) { closeDrawer(); return; }
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n' && !e.shiftKey) {
+      e.preventDefault();
+      openModal('newProjectModal');
+    }
+  });
+
+  // -------- DROP ZONE (New Version modal) --------
+  function setPendingFile(file) {
+    if (!file) return;
+    if (!/\.html?$/i.test(file.name) && file.type !== 'text/html') {
+      toast('Please pick an HTML file', 'err');
+      return;
+    }
+    pendingVersionFile = file;
+    document.getElementById('dropEmpty').classList.add('hidden');
+    const filled = document.getElementById('dropFilled');
+    filled.classList.remove('hidden');
+    document.getElementById('dropFileName').textContent = file.name;
+    document.getElementById('dropFileSize').textContent = fmtBytes(file.size);
+  }
+  function clearPendingFile() {
+    pendingVersionFile = null;
+    document.getElementById('versionFileInput').value = '';
+    document.getElementById('dropEmpty').classList.remove('hidden');
+    document.getElementById('dropFilled').classList.add('hidden');
+  }
+
+  const dropEmpty = document.getElementById('dropEmpty');
+  const versionFileInput = document.getElementById('versionFileInput');
+  dropEmpty.addEventListener('click', () => versionFileInput.click());
+  versionFileInput.addEventListener('change', () => setPendingFile(versionFileInput.files && versionFileInput.files[0]));
+  document.getElementById('dropClear').addEventListener('click', clearPendingFile);
+  ['dragenter','dragover'].forEach(evt => dropEmpty.addEventListener(evt, (e) => {
+    e.preventDefault(); e.stopPropagation();
+    dropEmpty.classList.add('border-brand-500','bg-brand-50');
+  }));
+  ['dragleave','drop'].forEach(evt => dropEmpty.addEventListener(evt, (e) => {
+    e.preventDefault(); e.stopPropagation();
+    dropEmpty.classList.remove('border-brand-500','bg-brand-50');
+  }));
+  dropEmpty.addEventListener('drop', (e) => {
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) setPendingFile(file);
+  });
+
+  // -------- IMPORT (folder → project + initial bundle version) --------
+  let pendingImport = null; // { folderName, files: { path: File }, htmlPaths: [...] }
+  let importPickedIcon = ICONS[0];
+  let importPickedCover = COVERS[0].name;
+
+  // Skip dotfiles, lockfiles, and node_modules — typical Claude/Vite project clutter.
+  function shouldSkipImport(path) {
+    const segs = path.split('/');
+    if (segs.some(s => s === 'node_modules' || s === '.git' || s === 'dist-old' || s === '.next' || s === '.turbo' || s === '.cache')) return true;
+    const last = segs[segs.length - 1];
+    if (last.startsWith('.DS_Store')) return true;
+    return false;
+  }
+
+  function prepareImportModal(files) {
+    // Use webkitRelativePath; first segment is the folder name.
+    const root = (files[0].webkitRelativePath || files[0].name).split('/')[0];
+    const map = {};
+    let totalSize = 0;
+    files.forEach(f => {
+      const rel = (f.webkitRelativePath || f.name);
+      const path = rel.startsWith(root + '/') ? rel.slice(root.length + 1) : rel;
+      if (!path || shouldSkipImport(path)) return;
+      map[path] = f;
+      totalSize += f.size || 0;
+    });
+    const htmlPaths = Object.keys(map).filter(p => /\.html?$/i.test(p))
+      .sort((a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b));
+
+    if (htmlPaths.length === 0) {
+      toast('No HTML file found in this folder', 'err');
+      return;
+    }
+
+    pendingImport = { folderName: root, files: map, totalSize, htmlPaths };
+
+    // Pick a sensible default entry — root index.html if present.
+    const defaultEntry = htmlPaths.find(p => p === 'index.html')
+      || htmlPaths.find(p => /(^|\/)index\.html$/i.test(p))
+      || htmlPaths[0];
+
+    // Populate UI.
+    document.getElementById('importFolderName').textContent = root;
+    document.getElementById('importFolderMeta').textContent =
+      `${Object.keys(map).length} files · ${fmtBytes(totalSize)}`;
+
+    const sel = document.getElementById('importEntrySelect');
+    sel.innerHTML = htmlPaths.map(p => `<option value="${escapeHtml(p)}" ${p === defaultEntry ? 'selected' : ''}>${escapeHtml(p)}</option>`).join('');
+    document.getElementById('importEntryHint').textContent = htmlPaths.length === 1
+      ? 'Only one HTML file in this folder.'
+      : `${htmlPaths.length} HTML files found. Pick the one to use as the preview entry.`;
+
+    const f = document.getElementById('importProjectForm');
+    f.querySelector('[name="name"]').value = root.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    f.querySelector('[name="description"]').value = '';
+
+    importPickedIcon = ICONS[Math.floor(Math.random() * ICONS.length)];
+    importPickedCover = COVERS[Math.floor(Math.random() * COVERS.length)].name;
+    buildImportPickers();
+
+    openModal('importProjectModal');
+  }
+
+  function buildImportPickers() {
+    const ip = document.getElementById('importIconPicker');
+    ip.innerHTML = ICONS.map(name => `
+      <button type="button" data-icon="${name}"
+        class="i-icon-pick h-9 w-full rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-700 flex items-center justify-center">
+        <i class="ti ti-${name} text-lg"></i>
+      </button>`).join('');
+    ip.querySelectorAll('.i-icon-pick').forEach(b => {
+      b.addEventListener('click', () => {
+        importPickedIcon = b.dataset.icon;
+        ip.querySelectorAll('.i-icon-pick').forEach(x => x.classList.remove('border-brand-500','bg-brand-50','text-brand-700'));
+        b.classList.add('border-brand-500','bg-brand-50','text-brand-700');
+      });
+    });
+    ip.querySelector(`[data-icon="${importPickedIcon}"]`).classList.add('border-brand-500','bg-brand-50','text-brand-700');
+
+    const cp = document.getElementById('importColorPicker');
+    cp.innerHTML = COVERS.map(c => `
+      <button type="button" data-cover="${c.name}"
+        class="i-color-pick h-9 w-full rounded-lg border-2 border-transparent flex items-center justify-center"
+        style="background:${c.hex}" title="${c.name}"></button>`).join('');
+    cp.querySelectorAll('.i-color-pick').forEach(b => {
+      b.addEventListener('click', () => {
+        importPickedCover = b.dataset.cover;
+        cp.querySelectorAll('.i-color-pick').forEach(x => x.classList.remove('ring-2','ring-offset-2','ring-ink-900'));
+        b.classList.add('ring-2','ring-offset-2','ring-ink-900');
+      });
+    });
+    cp.querySelector(`[data-cover="${importPickedCover}"]`).classList.add('ring-2','ring-offset-2','ring-ink-900');
+  }
+
+  document.getElementById('importProjectForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!pendingImport) return;
+    const fd = new FormData(e.target);
+    const name = (fd.get('name')||'').trim();
+    const desc = (fd.get('description')||'').trim();
+    const entry = (fd.get('entry')||'').trim();
+    if (!name || !entry || !pendingImport.files[entry]) {
+      toast('Pick a valid entry HTML', 'err');
+      return;
+    }
+    const submitBtn = document.getElementById('importSubmitBtn');
+    submitBtn.disabled = true;
+    document.getElementById('importSubmitLabel').textContent = 'Importing…';
+    try {
+      const now = Date.now();
+      const projectId = uid('p');
+      const versionId = uid('v');
+
+      // Convert File map into a Blob map for IndexedDB storage.
+      const blobs = {};
+      for (const [path, file] of Object.entries(pendingImport.files)) {
+        blobs[path] = new Blob([await file.arrayBuffer()], { type: file.type || guessType(path) });
+      }
+      await idbPut(versionId, { kind: 'bundle', entry, files: blobs });
+
+      const project = {
+        id: projectId,
+        name,
+        description: desc,
+        owner: 'Ragavan T',
+        icon: importPickedIcon,
+        cover: importPickedCover,
+        createdAt: now,
+        updatedAt: now,
+        versions: [{
+          id: versionId,
+          label: 'v0.1',
+          name: 'Initial import',
+          notes: `Imported from ${pendingImport.folderName}`,
+          status: 'draft',
+          createdAt: now,
+          updatedAt: now,
+          file: {
+            kind: 'bundle',
+            name: pendingImport.folderName,
+            entry,
+            size: pendingImport.totalSize,
+            fileCount: Object.keys(pendingImport.files).length,
+            storedAt: now,
+          }
+        }]
+      };
+      state.projects.unshift(project);
+      saveState(state);
+      pendingImport = null;
+      closeAllModals();
+      renderProjects();
+      renderStats();
+      openDrawer(projectId);
+      toast(`Imported "${project.name}" (${project.versions[0].file.fileCount} files)`);
+    } catch (err) {
+      console.error(err);
+      toast('Import failed — see console', 'err');
+    } finally {
+      submitBtn.disabled = false;
+      document.getElementById('importSubmitLabel').textContent = 'Import project';
+    }
+  });
+
+  function guessType(path) {
+    const ext = path.split('.').pop().toLowerCase();
+    return ({
+      html: 'text/html', htm: 'text/html', css: 'text/css',
+      js: 'text/javascript', mjs: 'text/javascript', json: 'application/json',
+      svg: 'image/svg+xml', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+      gif: 'image/gif', webp: 'image/webp', ico: 'image/x-icon',
+      woff: 'font/woff', woff2: 'font/woff2', ttf: 'font/ttf', otf: 'font/otf',
+      mp4: 'video/mp4', webm: 'video/webm', mp3: 'audio/mpeg',
+    })[ext] || 'application/octet-stream';
+  }
+
+  // -------- BUNDLE PREVIEW: rewrite relative URLs to Blob URLs --------
+  function resolveBundlePath(basePath, ref) {
+    if (!ref) return null;
+    if (/^(?:[a-z]+:|\/\/|#|data:|blob:|javascript:|mailto:)/i.test(ref)) return null;
+    const cleaned = ref.split('?')[0].split('#')[0];
+    if (!cleaned) return null;
+    const baseSegs = basePath.split('/').slice(0, -1);
+    const refSegs = cleaned.startsWith('/') ? cleaned.slice(1).split('/') : [...baseSegs, ...cleaned.split('/')];
+    const out = [];
+    for (const s of refSegs) {
+      if (s === '..') out.pop();
+      else if (s !== '.' && s !== '') out.push(s);
+    }
+    return out.join('/');
+  }
+
+  function rewriteCss(css, basePath, blobUrls) {
+    css = css.replace(/url\(\s*(['"]?)([^'"\)]+)\1\s*\)/g, (m, q, ref) => {
+      const r = resolveBundlePath(basePath, ref);
+      return (r && blobUrls.has(r)) ? `url(${blobUrls.get(r)})` : m;
+    });
+    css = css.replace(/@import\s+(?:url\(\s*)?(['"])([^'"]+)\1(?:\s*\))?/g, (m, q, ref) => {
+      const r = resolveBundlePath(basePath, ref);
+      return (r && blobUrls.has(r)) ? `@import "${blobUrls.get(r)}"` : m;
+    });
+    return css;
+  }
+
+  async function rewriteBundleToBlob(bundle) {
+    const { entry, files } = bundle;
+    if (!files[entry]) throw new Error('Entry file missing: ' + entry);
+    const blobUrls = new Map();
+    const cleanup = [];
+    const register = (path, blob) => {
+      const url = URL.createObjectURL(blob);
+      blobUrls.set(path, url);
+      cleanup.push(url);
+    };
+    // Pass 1: register everything except the entry HTML and CSS files (they need rewriting).
+    for (const [path, blob] of Object.entries(files)) {
+      if (path === entry) continue;
+      if (/\.css$/i.test(path)) continue;
+      register(path, blob);
+    }
+    // Pass 2: rewrite CSS files (they may reference other assets).
+    for (const [path, blob] of Object.entries(files)) {
+      if (!/\.css$/i.test(path)) continue;
+      const text = await blob.text();
+      const rewritten = rewriteCss(text, path, blobUrls);
+      register(path, new Blob([rewritten], { type: 'text/css' }));
+    }
+    // Pass 3: rewrite the entry HTML.
+    const html = await files[entry].text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const swapAttr = (sel, attr) => {
+      doc.querySelectorAll(sel).forEach(el => {
+        const ref = el.getAttribute(attr);
+        const r = resolveBundlePath(entry, ref);
+        if (r && blobUrls.has(r)) el.setAttribute(attr, blobUrls.get(r));
+      });
+    };
+    swapAttr('link[href]', 'href');
+    swapAttr('script[src]', 'src');
+    swapAttr('img[src]', 'src');
+    swapAttr('source[src]', 'src');
+    swapAttr('video[src]', 'src');
+    swapAttr('audio[src]', 'src');
+    swapAttr('iframe[src]', 'src');
+    swapAttr('use[href]', 'href');
+    doc.querySelectorAll('[srcset]').forEach(el => {
+      const v = el.getAttribute('srcset') || '';
+      const newV = v.split(',').map(part => {
+        const [ref, ...desc] = part.trim().split(/\s+/);
+        const r = resolveBundlePath(entry, ref);
+        return (r && blobUrls.has(r)) ? [blobUrls.get(r), ...desc].join(' ') : part;
+      }).join(', ');
+      el.setAttribute('srcset', newV);
+    });
+    doc.querySelectorAll('style').forEach(s => {
+      s.textContent = rewriteCss(s.textContent || '', entry, blobUrls);
+    });
+    doc.querySelectorAll('[style]').forEach(el => {
+      el.setAttribute('style', rewriteCss(el.getAttribute('style') || '', entry, blobUrls));
+    });
+    const out = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+    // Revoke asset blob URLs after a window so the page loads them; long enough for typical static loads.
+    setTimeout(() => cleanup.forEach(u => URL.revokeObjectURL(u)), 5 * 60_000);
+    return new Blob([out], { type: 'text/html' });
+  }
+
+  // First paint
+  renderProjects();
+  renderStats();
+  </script>
+</body>
+</html>
