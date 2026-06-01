@@ -169,9 +169,18 @@
       box-shadow: 0 1px 3px rgba(15,23,42,0.12);
       backdrop-filter: blur(6px);
     }
-    .ptile-open {
+    .ptile-actions {
       position: absolute;
       top: 10px; right: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 180ms cubic-bezier(0.16,1,0.3,1), transform 180ms cubic-bezier(0.16,1,0.3,1);
+    }
+    .ptile-frame:hover .ptile-actions { opacity: 1; transform: translateY(0); }
+    .ptile-open {
       height: 30px;
       padding: 0 10px;
       border-radius: 7px;
@@ -183,16 +192,25 @@
       align-items: center;
       gap: 5px;
       backdrop-filter: blur(8px);
-      opacity: 0;
-      transform: translateY(-4px);
-      transition: opacity 180ms cubic-bezier(0.16,1,0.3,1), transform 180ms cubic-bezier(0.16,1,0.3,1), background 160ms;
+      transition: background 160ms;
       cursor: pointer;
       border: 0;
       text-decoration: none;
     }
     .ptile-open i { font-size: 14px !important; }
-    .ptile-frame:hover .ptile-open { opacity: 1; transform: translateY(0); }
     .ptile-open:hover { background: rgba(15,23,42,0.95); }
+    .ptile-kebab {
+      height: 30px; width: 30px;
+      border-radius: 7px;
+      background: rgba(255,255,255,0.92);
+      color: #475569;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(8px);
+      cursor: pointer;
+      border: 0;
+      transition: background 160ms;
+    }
+    .ptile-kebab:hover { background: #ffffff; color: #0f172a; }
     .ptile-sub {
       margin-top: 2px;
       font-size: 12px;
@@ -226,6 +244,66 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Version view — right pane collapse (Claude-style) */
+    #vvAside {
+      width: 380px;
+      flex-shrink: 0;
+      transition: width 280ms cubic-bezier(0.16, 1, 0.3, 1), border-color 280ms;
+      overflow: hidden;
+    }
+    #vvAside > * {
+      min-width: 380px;
+      transition: opacity 180ms ease;
+    }
+    #versionView.pane-collapsed #vvAside {
+      width: 0;
+      border-left-color: transparent;
+    }
+    #versionView.pane-collapsed #vvAside > * { opacity: 0; pointer-events: none; }
+    #versionView.pane-collapsed #vvShowPane { display: inline-flex; }
+    #vvShowPane { animation: vvShowPaneIn 220ms cubic-bezier(0.16,1,0.3,1); }
+    @keyframes vvShowPaneIn {
+      from { opacity: 0; transform: translateX(8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    /* Version view — pin marker & flash highlight */
+    .vv-pin-marker {
+      position: absolute;
+      width: 24px; height: 24px;
+      margin: -12px 0 0 -12px;
+      border-radius: 50%;
+      background: rgba(253,80,0,0.92);
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.9), 0 4px 12px rgba(15,23,42,0.18);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: auto;
+      cursor: pointer;
+      transition: transform 160ms cubic-bezier(0.16,1,0.3,1);
+    }
+    .vv-pin-marker:hover { transform: scale(1.15); }
+    @keyframes vvFlash {
+      0%   { transform: scale(0.5); opacity: 0; }
+      18%  { transform: scale(1);   opacity: 1; }
+      100% { transform: scale(3);   opacity: 0; }
+    }
+    .vv-flash {
+      position: absolute;
+      width: 56px; height: 56px;
+      margin: -28px 0 0 -28px;
+      border-radius: 50%;
+      border: 3px solid #fd5000;
+      background: rgba(253,80,0,0.18);
+      pointer-events: none;
+      animation: vvFlash 1.1s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .vv-tab.active {
+      background: #ffffff;
+      color: #334155;
+      box-shadow: 0 1px 2px rgba(15,23,42,0.06);
     }
     /* Empty state illustration */
     .empty-grid {
@@ -302,7 +380,7 @@
 
     <!-- All the dashboard sections — hidden when a project page is active -->
     <div id="dashboardView">
-    <!-- Page header -->
+    <!-- Unified projects header -->
     <section class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-7">
       <div>
         <div class="flex items-center gap-2 text-[12px] text-ink-500 mb-1.5">
@@ -310,132 +388,33 @@
           <span>Workspace</span>
           <i class="ti ti-chevron-right text-xs"></i>
           <span class="text-ink-700 font-medium">Design Lab</span>
+          <span id="cloudGhAuth" class="hidden ml-2 inline-flex items-center gap-1 h-5 px-1.5 rounded bg-emerald-50 text-emerald-700 text-[10.5px] font-medium">
+            <i class="ti ti-shield-check text-xs"></i> GitHub authed
+          </span>
+          <span id="cloudGhAnon" class="hidden ml-2 inline-flex items-center gap-1 h-5 px-1.5 rounded bg-amber-50 text-amber-700 text-[10.5px] font-medium" title="No GITHUB_TOKEN set — limited to 60 requests/hour.">
+            <i class="ti ti-alert-triangle text-xs"></i> GitHub anon (60/hr)
+          </span>
         </div>
         <h1 class="text-[26px] md:text-[28px] font-semibold text-ink-900 tracking-tight leading-tight">Design Projects</h1>
         <p class="mt-1 text-sm text-ink-500 max-w-2xl">
-          A home for every prototype your team builds. Group experiments under a project, ship variations as versions, and keep the source of truth on Zuper Server.
-        </p>
-      </div>
-      <div class="flex items-center gap-2">
-        <button id="openImportBtn" class="inline-flex items-center gap-2 h-10 px-3.5 rounded-lg border border-ink-200 bg-white hover:bg-ink-50 text-sm font-medium text-ink-700 transition">
-          <i class="ti ti-cloud-upload text-base"></i>
-          Import
-        </button>
-        <button id="openNewProjectBtn" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium shadow-card transition">
-          <i class="ti ti-plus text-base"></i>
-          New Project
-        </button>
-      </div>
-    </section>
-
-    <!-- Stats strip -->
-    <section class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
-      <div class="bg-white border border-ink-200 rounded-xl p-4 shadow-card">
-        <div class="flex items-center gap-2 text-ink-500 text-[12px] font-medium"><i class="ti ti-folders text-sm"></i> Projects</div>
-        <div class="mt-1.5 text-2xl font-semibold text-ink-900" data-stat="projects">0</div>
-      </div>
-      <div class="bg-white border border-ink-200 rounded-xl p-4 shadow-card">
-        <div class="flex items-center gap-2 text-ink-500 text-[12px] font-medium"><i class="ti ti-versions text-sm"></i> Versions</div>
-        <div class="mt-1.5 text-2xl font-semibold text-ink-900" data-stat="versions">0</div>
-      </div>
-      <div class="bg-white border border-ink-200 rounded-xl p-4 shadow-card">
-        <div class="flex items-center gap-2 text-ink-500 text-[12px] font-medium"><i class="ti ti-users text-sm"></i> Contributors</div>
-        <div class="mt-1.5 text-2xl font-semibold text-ink-900" data-stat="contributors">0</div>
-      </div>
-      <div class="bg-white border border-ink-200 rounded-xl p-4 shadow-card">
-        <div class="flex items-center gap-2 text-ink-500 text-[12px] font-medium"><i class="ti ti-server-2 text-sm"></i> Storage</div>
-        <div class="mt-1.5 flex items-baseline gap-1.5">
-          <span class="text-2xl font-semibold text-ink-900" data-stat="storage">—</span>
-          <span class="text-[11px] text-ink-500">on Zuper Server</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Toolbar -->
-    <section class="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
-      <div class="relative flex-1">
-        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 text-base"></i>
-        <input id="filterSearch" type="text" placeholder="Filter projects by name, description, owner…"
-               class="w-full h-10 pl-10 pr-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus transition" />
-      </div>
-      <div class="flex items-center gap-2">
-        <div class="relative">
-          <select id="sortSelect" class="appearance-none h-10 pl-3 pr-9 bg-white border border-ink-200 rounded-lg text-sm text-ink-700 input-focus">
-            <option value="updated">Recently updated</option>
-            <option value="created">Recently created</option>
-            <option value="name">Name (A→Z)</option>
-            <option value="versions">Most versions</option>
-          </select>
-          <i class="ti ti-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm pointer-events-none"></i>
-        </div>
-        <div class="inline-flex p-0.5 bg-ink-100 rounded-lg">
-          <button data-view="grid" class="view-toggle px-2.5 h-9 rounded-md text-ink-700 text-sm flex items-center gap-1.5 bg-white shadow-sm">
-            <i class="ti ti-layout-grid text-base"></i><span class="hidden md:inline">Grid</span>
-          </button>
-          <button data-view="list" class="view-toggle px-2.5 h-9 rounded-md text-ink-500 text-sm flex items-center gap-1.5">
-            <i class="ti ti-list text-base"></i><span class="hidden md:inline">List</span>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Projects grid -->
-    <section id="projectsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <!-- cards injected here -->
-    </section>
-
-    <!-- ============== GITHUB-LINKED PROJECTS (server-backed) ============== -->
-    <section class="mt-12 mb-5 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-      <div>
-        <div class="flex items-center gap-2 text-[12px] text-ink-500 mb-1">
-          <i class="ti ti-brand-github text-sm"></i>
-          <span class="uppercase tracking-wide font-medium">Cloud Projects</span>
-          <span id="cloudGhAuth" class="hidden ml-2 inline-flex items-center gap-1 h-5 px-1.5 rounded bg-emerald-50 text-emerald-700 text-[10.5px] font-medium">
-            <i class="ti ti-shield-check text-xs"></i> Authed
-          </span>
-          <span id="cloudGhAnon" class="hidden ml-2 inline-flex items-center gap-1 h-5 px-1.5 rounded bg-amber-50 text-amber-700 text-[10.5px] font-medium" title="No GITHUB_TOKEN set — limited to 60 requests/hour.">
-            <i class="ti ti-alert-triangle text-xs"></i> Anon (60/hr)
-          </span>
-        </div>
-        <h2 class="text-[20px] font-semibold text-ink-900 tracking-tight">GitHub-linked projects</h2>
-        <p class="mt-1 text-sm text-ink-500 max-w-2xl">
-          Link a GitHub repo and we'll pull commits as versions automatically. Mix in Vercel deploys, Loom videos, or screenshots — all stored on the local bridge until comp server lands.
+          A home for every prototype your team builds. Add commits from GitHub, Vercel deploys, Loom recordings, screenshots — anything that ships.
         </p>
       </div>
       <div class="flex items-center gap-2">
         <button id="cloudSyncAllBtn" class="inline-flex items-center gap-2 h-10 px-3.5 rounded-lg border border-ink-200 bg-white hover:bg-ink-50 text-sm font-medium text-ink-700 transition" title="Pull latest commits for every linked repo">
           <i class="ti ti-refresh text-base"></i> Sync all
         </button>
-        <button id="cloudNewProjectBtn" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-ink-900 hover:bg-ink-800 text-white text-sm font-medium shadow-card transition">
-          <i class="ti ti-brand-github text-base"></i> Add from GitHub
+        <button id="cloudNewProjectBtn" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium shadow-card transition">
+          <i class="ti ti-plus text-base"></i> New project
         </button>
       </div>
     </section>
 
     <section id="cloudProjectsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <!-- cloud cards injected here -->
+      <!-- cards injected here -->
     </section>
 
     <section id="cloudEmpty" class="hidden">
-      <div class="relative bg-white border border-dashed border-ink-200 rounded-2xl py-12 px-6 text-center overflow-hidden">
-        <div class="absolute inset-0 empty-grid opacity-60 pointer-events-none"></div>
-        <div class="relative">
-          <div class="mx-auto h-14 w-14 rounded-2xl bg-ink-900 text-white flex items-center justify-center">
-            <i class="ti ti-brand-github text-3xl"></i>
-          </div>
-          <h3 class="mt-4 text-lg font-semibold text-ink-900">Link your first repo</h3>
-          <p class="mt-1 text-sm text-ink-500 max-w-sm mx-auto">
-            Paste any GitHub repo URL. We'll auto-create a project, pull recent commits as versions, and check back every 5 minutes.
-          </p>
-          <button id="cloudEmptyAddBtn" class="mt-5 inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-ink-900 hover:bg-ink-800 text-white text-sm font-medium shadow-card transition">
-            <i class="ti ti-brand-github text-base"></i> Add from GitHub
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Empty state -->
-    <section id="emptyState" class="hidden">
       <div class="relative bg-white border border-dashed border-ink-200 rounded-2xl py-16 px-6 text-center overflow-hidden">
         <div class="absolute inset-0 empty-grid opacity-60 pointer-events-none"></div>
         <div class="relative">
@@ -444,9 +423,9 @@
           </div>
           <h3 class="mt-4 text-lg font-semibold text-ink-900">No projects yet</h3>
           <p class="mt-1 text-sm text-ink-500 max-w-sm mx-auto">
-            Spin up your first prototype project. Each project can hold any number of versions — variations, iterations, or A/B tests.
+            Create a project — optionally link a GitHub repo to auto-import commits. You can mix in Vercel deploys, Loom videos and screenshots inside any project.
           </p>
-          <button id="emptyCreateBtn" class="mt-5 inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium shadow-card transition">
+          <button id="cloudEmptyAddBtn" class="mt-5 inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium shadow-card transition">
             <i class="ti ti-plus text-base"></i> Create your first project
           </button>
         </div>
@@ -456,9 +435,9 @@
     <footer class="mt-12 pb-6 flex items-center justify-between text-[12px] text-ink-400">
       <div class="flex items-center gap-1.5">
         <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 pulse-dot"></span>
-        <span>Synced to Zuper Server · just now</span>
+        <span>Synced to bridge · auto-refresh every 30s</span>
       </div>
-      <div>v0.1 · prototype dashboard</div>
+      <div>v0.2 · prototype dashboard</div>
     </footer>
     </div><!-- /#dashboardView -->
 
@@ -501,347 +480,138 @@
     </section>
   </main>
 
-  <!-- ============== PROJECT DRAWER ============== -->
-  <div id="drawerRoot" class="fixed inset-0 z-50 hidden">
-    <div id="drawerScrim" class="absolute inset-0 bg-ink-900/30 backdrop-blur-[2px] opacity-0 transition-opacity duration-200"></div>
-    <aside id="drawerPanel" class="absolute right-0 top-0 h-full w-full max-w-[640px] bg-white shadow-pop translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col">
-
-      <!-- Drawer header -->
-      <div id="drawerHeader" class="relative h-32 overflow-hidden">
-        <!-- gets project cover background via JS -->
-        <div class="absolute inset-0 cover-grid"></div>
-        <button id="closeDrawerBtn" class="absolute top-3 right-3 h-9 w-9 rounded-lg bg-white/90 hover:bg-white text-ink-700 flex items-center justify-center shadow-card">
-          <i class="ti ti-x text-lg"></i>
+  <!-- ============== VERSION VIEW (full-screen, breaks out of <main>) ============== -->
+  <section id="versionView" class="fixed inset-0 z-30 hidden bg-white flex flex-col">
+    <header class="h-14 px-5 border-b border-ink-200 flex items-center justify-between shrink-0 bg-white">
+      <div class="flex items-center gap-3 min-w-0">
+        <button id="vvBack" class="h-9 w-9 rounded-lg hover:bg-ink-100 text-ink-600 flex items-center justify-center" title="Back">
+          <i class="ti ti-arrow-left text-lg"></i>
+        </button>
+        <div class="min-w-0 flex items-center gap-2">
+          <span id="vvProjectName" class="text-[13px] text-ink-500 truncate"></span>
+          <span class="text-ink-300">/</span>
+          <span id="vvTitle" class="text-[15px] font-semibold text-ink-900 truncate"></span>
+          <span id="vvLabel" class="font-mono text-[12px] text-ink-500 ml-1"></span>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 relative">
+        <a id="vvOpenNew" target="_blank" rel="noopener" class="hidden items-center gap-1.5 h-9 px-3 rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-700 text-[13px] font-medium">
+          <i class="ti ti-external-link text-base"></i> Open in new tab
+        </a>
+        <button id="vvKebab" class="h-9 w-9 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center" title="More">
+          <i class="ti ti-dots-vertical text-lg"></i>
+        </button>
+        <div id="vvKebabMenu" class="hidden absolute right-0 top-11 z-10 min-w-[160px] bg-white border border-ink-200 rounded-lg shadow-pop py-1">
+          <button data-vv-action="copy" class="w-full text-left px-3 py-1.5 hover:bg-ink-50 text-ink-700 text-sm flex items-center gap-2"><i class="ti ti-link text-base text-ink-500"></i>Copy link</button>
+          <button data-vv-action="edit" class="w-full text-left px-3 py-1.5 hover:bg-ink-50 text-ink-700 text-sm flex items-center gap-2"><i class="ti ti-pencil text-base text-ink-500"></i>Edit</button>
+          <div class="my-1 h-px bg-ink-100"></div>
+          <button data-vv-action="delete" class="w-full text-left px-3 py-1.5 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><i class="ti ti-trash text-base"></i>Delete</button>
+        </div>
+      </div>
+    </header>
+    <div id="vvBody" class="flex-1 flex min-h-0 relative">
+      <!-- Preview pane -->
+      <div id="vvPreviewWrap" class="relative bg-ink-50 overflow-hidden flex items-center justify-center flex-1 min-w-0">
+        <div id="vvPreview" class="relative max-w-full max-h-full flex items-center justify-center"></div>
+        <!-- Pin-mode overlay (captures clicks above iframe/img/video) -->
+        <div id="vvPinOverlay" class="hidden absolute inset-0 z-20 cursor-crosshair" style="background:rgba(15,23,42,0.04);backdrop-filter:blur(1px)">
+          <div class="absolute top-4 left-1/2 -translate-x-1/2 inline-flex items-center gap-2 h-9 px-3 rounded-full bg-ink-900 text-white text-[13px] font-medium shadow-pop">
+            <i class="ti ti-crosshair text-base"></i> Click on the preview to pin a comment · <span class="text-ink-300">Esc to cancel</span>
+          </div>
+        </div>
+        <!-- Pin overlay (existing pins shown when comments are visible) -->
+        <div id="vvPinLayer" class="absolute inset-0 z-10 pointer-events-none"></div>
+        <!-- Floating "show panel" button (visible when aside is collapsed) -->
+        <button id="vvShowPane" class="hidden absolute top-4 right-4 z-30 h-9 px-3 rounded-lg bg-white border border-ink-200 hover:bg-ink-50 text-ink-700 text-[12.5px] font-medium shadow-card items-center gap-1.5" title="Show details panel (⌘\)">
+          <i class="ti ti-layout-sidebar-right-expand text-base"></i> Details
         </button>
       </div>
 
-      <div class="px-6 -mt-7 relative">
-        <div id="drawerIcon" class="h-14 w-14 rounded-2xl bg-white border border-ink-200 shadow-card flex items-center justify-center text-2xl"></div>
-      </div>
-
-      <div class="px-6 py-5 border-b border-ink-200">
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <h2 id="drawerTitle" class="text-xl font-semibold text-ink-900 leading-tight truncate"></h2>
-            <p id="drawerDesc" class="mt-1 text-sm text-ink-500"></p>
-          </div>
-          <div class="flex items-center gap-1.5 shrink-0">
-            <button id="renameProjectBtn" class="h-9 w-9 rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-600 flex items-center justify-center" title="Rename">
-              <i class="ti ti-pencil text-base"></i>
-            </button>
-            <button id="deleteProjectBtn" class="h-9 w-9 rounded-lg border border-ink-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-ink-600 flex items-center justify-center" title="Delete project">
-              <i class="ti ti-trash text-base"></i>
-            </button>
-          </div>
-        </div>
-
-        <div class="mt-4 flex items-center flex-wrap gap-x-4 gap-y-2 text-[12px] text-ink-500">
-          <span class="inline-flex items-center gap-1.5"><i class="ti ti-versions text-sm"></i><span id="drawerVersionCount">0 versions</span></span>
-          <span class="inline-flex items-center gap-1.5"><i class="ti ti-user text-sm"></i><span id="drawerOwner"></span></span>
-          <span class="inline-flex items-center gap-1.5"><i class="ti ti-clock text-sm"></i><span id="drawerUpdated"></span></span>
-          <span class="inline-flex items-center gap-1.5"><i class="ti ti-server-2 text-sm"></i>Zuper Server</span>
-        </div>
-      </div>
-
-      <!-- Versions list -->
-      <div class="flex-1 overflow-y-auto zuper-scrollbar">
-        <div class="px-6 pt-5 pb-2 flex items-center justify-between sticky top-0 bg-white z-10 border-b border-ink-100">
-          <div>
-            <h3 class="text-sm font-semibold text-ink-800">Versions</h3>
-            <p class="text-[12px] text-ink-500">Each version is its own repo on Zuper Server.</p>
-          </div>
-          <button id="newVersionBtn" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-[13px] font-medium shadow-card transition">
-            <i class="ti ti-plus text-base"></i> New Version
+      <!-- Right pane -->
+      <aside id="vvAside" class="border-l border-ink-200 bg-white flex flex-col min-h-0">
+        <div class="px-4 pt-4 pb-3 border-b border-ink-200 flex items-center gap-2">
+          <button id="vvHidePane" class="h-9 w-9 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-700 flex items-center justify-center shrink-0" title="Hide panel (⌘\)">
+            <i class="ti ti-layout-sidebar-right-collapse text-lg"></i>
           </button>
-        </div>
-        <ul id="versionsList" class="px-6 py-3 space-y-2.5"></ul>
-      </div>
-    </aside>
-  </div>
-
-  <!-- ============== NEW PROJECT MODAL ============== -->
-  <div id="newProjectModal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-ink-900/40 backdrop-blur-sm modal-backdrop"></div>
-    <div class="absolute inset-0 flex items-center justify-center p-4">
-      <div class="modal-pop w-full max-w-lg bg-white rounded-2xl shadow-pop border border-ink-200">
-        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="h-9 w-9 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center"><i class="ti ti-folder-plus text-xl"></i></div>
-            <div>
-              <h3 class="text-base font-semibold text-ink-900">New design project</h3>
-              <p class="text-[12px] text-ink-500">Group related prototypes and their variations under one roof.</p>
-            </div>
-          </div>
-          <button class="closeModalBtn h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-x text-base"></i></button>
-        </div>
-
-        <form id="newProjectForm" class="px-6 py-5 space-y-4">
-          <div>
-            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Project name</label>
-            <input name="name" required maxlength="60" placeholder="e.g. Instant Estimation"
-                   class="w-full h-10 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus" />
-          </div>
-          <div>
-            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Description <span class="text-ink-400 font-normal">(optional)</span></label>
-            <textarea name="description" rows="2" maxlength="200" placeholder="What problem is this project exploring?"
-                      class="w-full px-3 py-2 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus resize-none"></textarea>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Icon</label>
-              <div id="iconPicker" class="grid grid-cols-6 gap-1.5"></div>
-            </div>
-            <div>
-              <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Cover color</label>
-              <div id="colorPicker" class="grid grid-cols-6 gap-1.5"></div>
-            </div>
-          </div>
-          <div>
-            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Owner</label>
-            <input name="owner" value="Ragavan T"
-                   class="w-full h-10 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 input-focus" />
-          </div>
-        </form>
-
-        <div class="px-6 py-4 bg-ink-50 rounded-b-2xl flex items-center justify-between gap-3">
-          <span class="text-[11px] text-ink-500 inline-flex items-center gap-1.5"><i class="ti ti-server-2"></i> Will be created on Zuper Server</span>
-          <div class="flex items-center gap-2">
-            <button type="button" class="closeModalBtn h-9 px-3.5 rounded-lg text-sm text-ink-700 hover:bg-ink-100">Cancel</button>
-            <button type="submit" form="newProjectForm" class="h-9 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Create project</button>
+          <div class="inline-flex flex-1 p-0.5 bg-ink-100 rounded-lg">
+            <button data-vv-tab="details" class="vv-tab flex-1 h-9 rounded-md text-ink-700 text-[13px] font-medium bg-white shadow-sm">Details</button>
+            <button data-vv-tab="comments" class="vv-tab flex-1 h-9 rounded-md text-ink-500 text-[13px] font-medium">Comments <span id="vvCommentBadge" class="text-ink-400"></span></button>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- ============== NEW VERSION MODAL ============== -->
-  <div id="newVersionModal" class="fixed inset-0 z-[55] hidden">
-    <div class="absolute inset-0 bg-ink-900/40 backdrop-blur-sm modal-backdrop"></div>
-    <div class="absolute inset-0 flex items-center justify-center p-4">
-      <div class="modal-pop w-full max-w-md bg-white rounded-2xl shadow-pop border border-ink-200">
-        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="h-9 w-9 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center"><i class="ti ti-git-branch text-xl"></i></div>
+        <!-- Details panel -->
+        <div data-vv-pane="details" class="flex-1 overflow-y-auto zuper-scrollbar px-5 py-4">
+          <div class="space-y-3 text-[13px]">
             <div>
-              <h3 class="text-base font-semibold text-ink-900">New version</h3>
-              <p class="text-[12px] text-ink-500">Spawn a new repo for this variation.</p>
+              <div class="text-[11.5px] text-ink-500 mb-0.5">Title</div>
+              <div id="vvDetailTitle" class="text-ink-900 font-medium"></div>
+            </div>
+            <div>
+              <div class="text-[11.5px] text-ink-500 mb-0.5">Version</div>
+              <div id="vvDetailLabel" class="font-mono text-ink-900"></div>
+            </div>
+            <div>
+              <div class="text-[11.5px] text-ink-500 mb-0.5">What changed</div>
+              <div id="vvDetailDesc" class="text-ink-800 whitespace-pre-wrap">—</div>
+            </div>
+            <div>
+              <div class="text-[11.5px] text-ink-500 mb-0.5">Type</div>
+              <div id="vvDetailType" class="text-ink-800 inline-flex items-center gap-1.5"></div>
+            </div>
+            <div>
+              <div class="text-[11.5px] text-ink-500 mb-0.5">Status</div>
+              <div id="vvDetailStatus"></div>
+            </div>
+            <div>
+              <div class="text-[11.5px] text-ink-500 mb-0.5">Uploaded by</div>
+              <div id="vvDetailUploadedBy" class="text-ink-800"></div>
+            </div>
+            <div>
+              <div class="text-[11.5px] text-ink-500 mb-0.5">Created</div>
+              <div id="vvDetailCreated" class="text-ink-800"></div>
+            </div>
+            <div id="vvDetailUrlRow" class="hidden">
+              <div class="text-[11.5px] text-ink-500 mb-0.5">URL</div>
+              <a id="vvDetailUrl" target="_blank" rel="noopener" class="text-brand-600 hover:underline break-all"></a>
+            </div>
+            <div id="vvDetailFileRow" class="hidden">
+              <div class="text-[11.5px] text-ink-500 mb-0.5">File</div>
+              <div id="vvDetailFile" class="text-ink-800"></div>
+            </div>
+            <div id="vvDetailShaRow" class="hidden">
+              <div class="text-[11.5px] text-ink-500 mb-0.5">Commit</div>
+              <a id="vvDetailSha" target="_blank" rel="noopener" class="font-mono text-brand-600 hover:underline"></a>
             </div>
           </div>
-          <button class="closeModalBtn h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-x text-base"></i></button>
         </div>
 
-        <form id="newVersionForm" class="px-6 py-5 space-y-4">
-          <div>
-            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Version name</label>
-            <input name="name" required maxlength="60" placeholder="e.g. Two-step intake"
-                   class="w-full h-10 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus" />
-            <p class="mt-1 text-[11px] text-ink-400" id="versionLabelPreview">Will be tagged as v0.1 · main</p>
-          </div>
-          <div>
-            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Notes <span class="text-ink-400 font-normal">(optional)</span></label>
-            <textarea name="notes" rows="2" maxlength="200" placeholder="What are you trying in this version?"
-                      class="w-full px-3 py-2 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus resize-none"></textarea>
-          </div>
-          <div>
-            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">HTML file <span class="text-ink-400 font-normal">(optional — drop your prototype here)</span></label>
-            <input id="versionFileInput" type="file" accept=".html,.htm,text/html" class="sr-only">
-            <div id="dropEmpty" class="border-2 border-dashed border-ink-200 hover:border-brand-300 hover:bg-brand-50/40 rounded-lg p-4 text-center transition cursor-pointer">
-              <i class="ti ti-file-upload text-2xl text-ink-400"></i>
-              <p class="mt-1 text-[13px] text-ink-700">Drop your HTML file here, or <span class="text-brand-600 font-medium">browse</span></p>
-              <p class="text-[11px] text-ink-400">SingleFile saves work great. Stored locally on your device.</p>
-            </div>
-            <div id="dropFilled" class="hidden border border-ink-200 rounded-lg px-3 py-2.5 flex items-center gap-3 bg-ink-50">
-              <div class="h-9 w-9 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center shrink-0"><i class="ti ti-file-type-html text-xl"></i></div>
-              <div class="flex-1 min-w-0">
-                <div class="text-[13px] font-medium text-ink-800 truncate" id="dropFileName"></div>
-                <div class="text-[11px] text-ink-500" id="dropFileSize"></div>
+        <!-- Comments panel -->
+        <div data-vv-pane="comments" class="hidden flex-1 min-h-0 flex flex-col">
+          <div id="vvComments" class="flex-1 overflow-y-auto zuper-scrollbar px-5 py-4 space-y-3"></div>
+          <form id="vvCommentForm" class="border-t border-ink-200 p-3 space-y-2 shrink-0 bg-white">
+            <div id="vvPinChipWrap" class="hidden">
+              <div class="inline-flex items-center gap-1.5 h-7 px-2 rounded-full bg-brand-50 text-brand-700 text-[12px] font-medium border border-brand-200">
+                <i class="ti ti-map-pin text-sm"></i>
+                <span id="vvPinChipLabel"></span>
+                <button type="button" id="vvPinChipClear" class="ml-1 h-4 w-4 rounded-full hover:bg-brand-100 flex items-center justify-center"><i class="ti ti-x" style="font-size:11px"></i></button>
               </div>
-              <button type="button" id="dropClear" class="h-7 w-7 rounded hover:bg-ink-200 text-ink-500 flex items-center justify-center" title="Remove"><i class="ti ti-x text-base"></i></button>
             </div>
-          </div>
-          <div>
-            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Status</label>
-            <div class="grid grid-cols-3 gap-1.5">
-              <label class="status-pick cursor-pointer">
-                <input type="radio" name="status" value="draft" checked class="peer sr-only">
-                <div class="h-9 px-3 border border-ink-200 rounded-lg flex items-center justify-center text-[13px] text-ink-700 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">Draft</div>
-              </label>
-              <label class="status-pick cursor-pointer">
-                <input type="radio" name="status" value="review" class="peer sr-only">
-                <div class="h-9 px-3 border border-ink-200 rounded-lg flex items-center justify-center text-[13px] text-ink-700 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">In review</div>
-              </label>
-              <label class="status-pick cursor-pointer">
-                <input type="radio" name="status" value="published" class="peer sr-only">
-                <div class="h-9 px-3 border border-ink-200 rounded-lg flex items-center justify-center text-[13px] text-ink-700 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">Published</div>
-              </label>
+            <textarea id="vvCommentText" rows="2" required maxlength="800" placeholder="Add a comment…"
+                      class="w-full px-3 py-2 bg-white border border-ink-200 rounded-lg text-[13px] text-ink-800 placeholder-ink-400 input-focus resize-none"></textarea>
+            <div class="flex items-center justify-between">
+              <button type="button" id="vvPinBtn" class="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-700 text-[12px] font-medium" title="Pin a comment to a spot on the preview">
+                <i class="ti ti-map-pin text-base"></i> Pin to spot
+              </button>
+              <button type="submit" class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-[13px] font-medium">
+                <i class="ti ti-send text-base"></i> Post
+              </button>
             </div>
-          </div>
-        </form>
-
-        <div class="px-6 py-4 bg-ink-50 rounded-b-2xl flex items-center justify-end gap-2">
-          <button type="button" class="closeModalBtn h-9 px-3.5 rounded-lg text-sm text-ink-700 hover:bg-ink-100">Cancel</button>
-          <button type="submit" form="newVersionForm" class="h-9 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Create version</button>
+          </form>
         </div>
-      </div>
+      </aside>
     </div>
-  </div>
+  </section>
 
-  <!-- ============== CONFIRM MODAL ============== -->
-  <div id="confirmModal" class="fixed inset-0 z-[60] hidden">
-    <div class="absolute inset-0 bg-ink-900/40 backdrop-blur-sm modal-backdrop"></div>
-    <div class="absolute inset-0 flex items-center justify-center p-4">
-      <div class="modal-pop w-full max-w-sm bg-white rounded-2xl shadow-pop border border-ink-200">
-        <div class="p-6">
-          <div class="h-10 w-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center mb-3"><i class="ti ti-alert-triangle text-xl"></i></div>
-          <h3 id="confirmTitle" class="text-base font-semibold text-ink-900">Are you sure?</h3>
-          <p id="confirmBody" class="mt-1 text-sm text-ink-500">This action cannot be undone.</p>
-        </div>
-        <div class="px-6 py-4 bg-ink-50 rounded-b-2xl flex items-center justify-end gap-2">
-          <button id="confirmCancel" class="h-9 px-3.5 rounded-lg text-sm text-ink-700 hover:bg-ink-100">Cancel</button>
-          <button id="confirmOk" class="h-9 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium">Delete</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Hidden input for attaching/replacing files on existing versions -->
-  <input id="attachFileInput" type="file" accept=".html,.htm,text/html" class="sr-only">
-
-  <!-- Hidden folder picker for project import -->
-  <input id="importFolderInput" type="file" webkitdirectory directory multiple class="sr-only">
-
-  <!-- Floating kebab menu -->
-  <div id="kebabMenu" class="hidden fixed z-[65] min-w-[180px] bg-white border border-ink-200 rounded-lg shadow-pop py-1 text-sm"></div>
-
-  <!-- ============== IMPORT PROJECT MODAL ============== -->
-  <div id="importProjectModal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-ink-900/40 backdrop-blur-sm modal-backdrop"></div>
-    <div class="absolute inset-0 flex items-center justify-center p-4">
-      <div class="modal-pop w-full max-w-lg bg-white rounded-2xl shadow-pop border border-ink-200">
-        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="h-9 w-9 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center"><i class="ti ti-cloud-upload text-xl"></i></div>
-            <div>
-              <h3 class="text-base font-semibold text-ink-900">Import a project folder</h3>
-              <p class="text-[12px] text-ink-500">Bring a Claude Code (or any static) project under Zuper Server.</p>
-            </div>
-          </div>
-          <button class="closeModalBtn h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-x text-base"></i></button>
-        </div>
-
-        <form id="importProjectForm" class="px-6 py-5 space-y-4">
-          <div class="border border-ink-200 rounded-lg px-3 py-2.5 flex items-center gap-3 bg-ink-50">
-            <div class="h-9 w-9 rounded-lg bg-white border border-ink-200 text-brand-500 flex items-center justify-center shrink-0"><i class="ti ti-folder text-xl"></i></div>
-            <div class="flex-1 min-w-0">
-              <div class="text-[13px] font-medium text-ink-800 truncate" id="importFolderName">—</div>
-              <div class="text-[11px] text-ink-500" id="importFolderMeta">—</div>
-            </div>
-            <button type="button" id="importChooseAgain" class="h-8 px-2.5 rounded-lg border border-ink-200 hover:bg-white text-[12px] text-ink-700">Change</button>
-          </div>
-
-          <div>
-            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Project name</label>
-            <input name="name" required maxlength="60"
-                   class="w-full h-10 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus" />
-          </div>
-
-          <div>
-            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Description <span class="text-ink-400 font-normal">(optional)</span></label>
-            <textarea name="description" rows="2" maxlength="200"
-                      class="w-full px-3 py-2 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus resize-none"></textarea>
-          </div>
-
-          <div>
-            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Entry point <span class="text-ink-400 font-normal">(this file is shown when previewing)</span></label>
-            <div class="relative">
-              <select id="importEntrySelect" name="entry" required
-                      class="appearance-none w-full h-10 pl-3 pr-9 bg-white border border-ink-200 rounded-lg text-sm text-ink-700 input-focus"></select>
-              <i class="ti ti-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm pointer-events-none"></i>
-            </div>
-            <p id="importEntryHint" class="mt-1 text-[11px] text-ink-400">Auto-selected the first index.html found.</p>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Icon</label>
-              <div id="importIconPicker" class="grid grid-cols-6 gap-1.5"></div>
-            </div>
-            <div>
-              <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Cover color</label>
-              <div id="importColorPicker" class="grid grid-cols-6 gap-1.5"></div>
-            </div>
-          </div>
-        </form>
-
-        <div class="px-6 py-4 bg-ink-50 rounded-b-2xl flex items-center justify-between gap-3">
-          <span class="text-[11px] text-ink-500 inline-flex items-center gap-1.5"><i class="ti ti-server-2"></i> Initial version <span class="font-mono">v0.1</span> will be created on Zuper Server</span>
-          <div class="flex items-center gap-2">
-            <button type="button" class="closeModalBtn h-9 px-3.5 rounded-lg text-sm text-ink-700 hover:bg-ink-100">Cancel</button>
-            <button type="submit" form="importProjectForm" id="importSubmitBtn" class="h-9 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium inline-flex items-center gap-2">
-              <span id="importSubmitLabel">Import project</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============== CLOUD PROJECT DRAWER ============== -->
-  <div id="cloudDrawerRoot" class="fixed inset-0 z-50 hidden">
-    <div id="cloudDrawerScrim" class="absolute inset-0 bg-ink-900/30 backdrop-blur-[2px] opacity-0 transition-opacity duration-200"></div>
-    <aside id="cloudDrawerPanel" class="absolute right-0 top-0 h-full w-full max-w-[720px] bg-white shadow-pop translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col">
-      <div id="cloudDrawerHeader" class="relative h-32 overflow-hidden">
-        <div class="absolute inset-0 cover-grid"></div>
-        <button id="closeCloudDrawerBtn" class="absolute top-3 right-3 h-9 w-9 rounded-lg bg-white/90 hover:bg-white text-ink-700 flex items-center justify-center shadow-card">
-          <i class="ti ti-x text-lg"></i>
-        </button>
-      </div>
-      <div class="px-6 -mt-7 relative">
-        <div id="cloudDrawerIcon" class="h-14 w-14 rounded-2xl bg-white border border-ink-200 shadow-card flex items-center justify-center text-2xl"></div>
-      </div>
-      <div class="px-6 py-5 border-b border-ink-200">
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <h2 id="cloudDrawerTitle" class="text-xl font-semibold text-ink-900 leading-tight truncate"></h2>
-            <p id="cloudDrawerDesc" class="mt-1 text-sm text-ink-500"></p>
-            <a id="cloudDrawerRepo" target="_blank" rel="noopener" class="mt-1 inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-700 hover:text-brand-600">
-              <i class="ti ti-brand-github text-sm"></i><span></span>
-            </a>
-          </div>
-          <div class="flex items-center gap-1.5 shrink-0">
-            <button id="cloudSyncBtn" class="h-9 px-3 rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-700 inline-flex items-center gap-1.5 text-[13px] font-medium" title="Pull latest commits">
-              <i class="ti ti-refresh text-base"></i> Sync
-            </button>
-            <button id="cloudDeleteProjectBtn" class="h-9 w-9 rounded-lg border border-ink-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-ink-600 flex items-center justify-center" title="Delete project">
-              <i class="ti ti-trash text-base"></i>
-            </button>
-          </div>
-        </div>
-        <div class="mt-4 flex items-center flex-wrap gap-x-4 gap-y-2 text-[12px] text-ink-500">
-          <span class="inline-flex items-center gap-1.5"><i class="ti ti-versions text-sm"></i><span id="cloudDrawerVersionCount">0 versions</span></span>
-          <span class="inline-flex items-center gap-1.5"><i class="ti ti-clock text-sm"></i><span id="cloudDrawerSynced">Never synced</span></span>
-          <span id="cloudDrawerSyncErr" class="hidden inline-flex items-center gap-1.5 text-red-600"><i class="ti ti-alert-triangle text-sm"></i><span></span></span>
-        </div>
-      </div>
-      <div class="flex-1 overflow-y-auto zuper-scrollbar">
-        <div class="px-6 pt-5 pb-2 flex items-center justify-between sticky top-0 bg-white z-10 border-b border-ink-100">
-          <div>
-            <h3 class="text-sm font-semibold text-ink-800">Versions</h3>
-            <p class="text-[12px] text-ink-500">Commits sync automatically. Add URLs and files manually.</p>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <button id="cloudAddUrlBtn" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-700 text-[13px] font-medium transition" title="Add a Vercel / Loom / Figma URL">
-              <i class="ti ti-link text-base"></i> Add link
-            </button>
-            <button id="cloudUploadBtn" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-[13px] font-medium shadow-card transition">
-              <i class="ti ti-upload text-base"></i> Upload
-            </button>
-          </div>
-        </div>
-        <ul id="cloudVersionsList" class="px-6 py-3 space-y-2.5"></ul>
-      </div>
-    </aside>
-  </div>
 
   <!-- ============== CLOUD NEW PROJECT MODAL ============== -->
   <div id="cloudNewProjectModal" class="fixed inset-0 z-50 hidden">
@@ -850,10 +620,10 @@
       <div class="modal-pop w-full max-w-lg bg-white rounded-2xl shadow-pop border border-ink-200">
         <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <div class="h-9 w-9 rounded-lg bg-ink-900 text-white flex items-center justify-center"><i class="ti ti-brand-github text-xl"></i></div>
+            <div class="h-9 w-9 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center"><i class="ti ti-folder-plus text-xl"></i></div>
             <div>
-              <h3 class="text-base font-semibold text-ink-900">Add from GitHub</h3>
-              <p class="text-[12px] text-ink-500">Paste a repo URL. Recent commits will be pulled as versions.</p>
+              <h3 class="text-base font-semibold text-ink-900">New project</h3>
+              <p class="text-[12px] text-ink-500">Optionally link a GitHub repo to auto-import commits as versions.</p>
             </div>
           </div>
           <button class="closeCloudModalBtn h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-x text-base"></i></button>
@@ -899,48 +669,6 @@
     </div>
   </div>
 
-  <!-- ============== CLOUD ADD LINK MODAL ============== -->
-  <div id="cloudAddLinkModal" class="fixed inset-0 z-[55] hidden">
-    <div class="absolute inset-0 bg-ink-900/40 backdrop-blur-sm modal-backdrop"></div>
-    <div class="absolute inset-0 flex items-center justify-center p-4">
-      <div class="modal-pop w-full max-w-md bg-white rounded-2xl shadow-pop border border-ink-200">
-        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="h-9 w-9 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center"><i class="ti ti-link text-xl"></i></div>
-            <div>
-              <h3 class="text-base font-semibold text-ink-900">Add a link as a version</h3>
-              <p class="text-[12px] text-ink-500">Vercel preview, Loom, Figma, Drive — anything with a URL.</p>
-            </div>
-          </div>
-          <button class="closeCloudModalBtn h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-x text-base"></i></button>
-        </div>
-        <form id="cloudAddLinkForm" class="px-6 py-5 space-y-4">
-          <div>
-            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">URL</label>
-            <input name="url" required placeholder="https://my-prototype.vercel.app"
-                   class="w-full h-10 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus" />
-          </div>
-          <div>
-            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Label</label>
-            <input name="name" maxlength="60" placeholder="e.g. Preview deploy / Walkthrough video"
-                   class="w-full h-10 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus" />
-          </div>
-          <div>
-            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Notes <span class="text-ink-400 font-normal">(optional)</span></label>
-            <textarea name="notes" rows="2" maxlength="200" placeholder="What's in this version?"
-                      class="w-full px-3 py-2 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus resize-none"></textarea>
-          </div>
-        </form>
-        <div class="px-6 py-4 bg-ink-50 rounded-b-2xl flex items-center justify-end gap-2">
-          <button type="button" class="closeCloudModalBtn h-9 px-3.5 rounded-lg text-sm text-ink-700 hover:bg-ink-100">Cancel</button>
-          <button type="submit" form="cloudAddLinkForm" class="h-9 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Add version</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Hidden file input for cloud uploads -->
-  <input id="cloudUploadInput" type="file" accept="video/*,image/*" class="sr-only">
 
   <!-- ============== ADD VERSION MODAL (unified link + upload) ============== -->
   <div id="addVersionModal" class="fixed inset-0 z-[60] hidden">
@@ -1122,113 +850,13 @@
     </div>
   </div>
 
-  <!-- ============== VERSION PREVIEW MODAL (Mobbin-style) ============== -->
-  <div id="previewModal" class="fixed inset-0 z-[70] hidden">
-    <div id="previewBackdrop" class="absolute inset-0 bg-ink-900/60 backdrop-blur-sm"></div>
-    <div class="absolute inset-0 flex items-center justify-center p-4 md:p-8">
-      <div class="modal-pop w-full h-full max-w-[1400px] max-h-[92vh] bg-white rounded-2xl shadow-pop border border-ink-200 flex flex-col overflow-hidden">
-        <div class="h-14 px-5 border-b border-ink-200 flex items-center justify-between shrink-0">
-          <div class="flex items-center gap-3 min-w-0">
-            <span id="pmBadge" class="inline-flex items-center gap-1.5 h-6 px-2 rounded-md bg-ink-100 text-ink-700 text-[11px] font-semibold uppercase tracking-wide"></span>
-            <h3 id="pmTitle" class="text-[15px] font-semibold text-ink-900 truncate"></h3>
-            <span id="pmLabel" class="font-mono text-[12px] text-ink-500"></span>
-          </div>
-          <div class="flex items-center gap-1.5 relative">
-            <a id="pmOpenNew" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-700 text-[13px] font-medium">
-              <i class="ti ti-external-link text-base"></i> Open in new tab
-            </a>
-            <button id="pmKebab" class="h-9 w-9 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center" title="More"><i class="ti ti-dots-vertical text-lg"></i></button>
-            <div id="pmKebabMenu" class="hidden absolute right-12 top-11 z-10 min-w-[160px] bg-white border border-ink-200 rounded-lg shadow-pop py-1">
-              <button data-pm-action="edit" class="w-full text-left px-3 py-1.5 hover:bg-ink-50 text-ink-700 text-sm flex items-center gap-2"><i class="ti ti-pencil text-base text-ink-500"></i>Edit</button>
-              <div class="my-1 h-px bg-ink-100"></div>
-              <button data-pm-action="delete" class="w-full text-left px-3 py-1.5 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><i class="ti ti-trash text-base"></i>Delete</button>
-            </div>
-            <button id="pmClose" class="h-9 w-9 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-x text-lg"></i></button>
-          </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-5 flex-1 min-h-0">
-          <div id="pmPreview" class="md:col-span-3 bg-ink-50 flex items-center justify-center overflow-hidden">
-            <!-- preview content injected -->
-          </div>
-          <aside class="md:col-span-2 border-l border-ink-200 flex flex-col min-h-0">
-            <div class="px-5 py-4 border-b border-ink-200 overflow-y-auto zuper-scrollbar" style="max-height: 50%">
-              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-ink-500 mb-2">Details</h4>
-              <dl class="space-y-2 text-[13px]">
-                <div><dt class="text-ink-500 text-[11.5px]">Version</dt><dd id="pmDetailLabel" class="font-mono text-ink-900"></dd></div>
-                <div><dt class="text-ink-500 text-[11.5px]">Description</dt><dd id="pmDetailDesc" class="text-ink-800 whitespace-pre-wrap"></dd></div>
-                <div><dt class="text-ink-500 text-[11.5px]">Uploaded by</dt><dd id="pmDetailUploadedBy" class="text-ink-800"></dd></div>
-                <div><dt class="text-ink-500 text-[11.5px]">Status</dt><dd id="pmDetailStatus"></dd></div>
-                <div><dt class="text-ink-500 text-[11.5px]">Created</dt><dd id="pmDetailCreated" class="text-ink-800"></dd></div>
-                <div id="pmDetailUrlRow" class="hidden"><dt class="text-ink-500 text-[11.5px]">URL</dt><dd><a id="pmDetailUrl" target="_blank" rel="noopener" class="text-brand-600 hover:underline break-all"></a></dd></div>
-                <div id="pmDetailFileRow" class="hidden"><dt class="text-ink-500 text-[11.5px]">File</dt><dd id="pmDetailFile" class="text-ink-800"></dd></div>
-                <div id="pmDetailShaRow" class="hidden"><dt class="text-ink-500 text-[11.5px]">Commit</dt><dd><a id="pmDetailSha" target="_blank" rel="noopener" class="font-mono text-brand-600 hover:underline"></a></dd></div>
-              </dl>
-            </div>
-            <div class="px-5 py-4 flex-1 min-h-0 flex flex-col">
-              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-ink-500 mb-2">Comments <span id="pmCommentCount" class="text-ink-400 normal-case font-normal"></span></h4>
-              <div id="pmComments" class="flex-1 overflow-y-auto zuper-scrollbar space-y-2.5 pr-1"></div>
-              <form id="pmCommentForm" class="mt-3 flex items-end gap-2">
-                <div class="flex-1">
-                  <textarea id="pmCommentText" rows="2" required maxlength="800" placeholder="Add a comment…"
-                            class="w-full px-3 py-2 bg-white border border-ink-200 rounded-lg text-[13px] text-ink-800 placeholder-ink-400 input-focus resize-none"></textarea>
-                </div>
-                <button type="submit" class="h-9 px-3 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium flex items-center gap-1.5">
-                  <i class="ti ti-send text-base"></i> Post
-                </button>
-              </form>
-            </div>
-          </aside>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- ============== TOAST ============== -->
   <div id="toastRoot" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-[70] flex flex-col gap-2 items-center pointer-events-none"></div>
 
   <script>
-  // -------- DATA LAYER --------
-  const STORAGE_KEY = 'zuper.designLab.v1';
-  const DB_NAME = 'zuper.designLab.files';
-  const DB_STORE = 'versionFiles';
+  // -------- SHARED UTILITIES --------
+  // Used by the cloud-projects view and the version view below.
 
-  // IndexedDB: stores HTML blobs keyed by versionId. Lets us hold many-MB SingleFile pages
-  // without bloating localStorage (which caps around 5–10 MB per origin).
-  function openDB() {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, 1);
-      req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  }
-  async function idbPut(key, blob) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(DB_STORE, 'readwrite');
-      tx.objectStore(DB_STORE).put(blob, key);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
-  async function idbGet(key) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(DB_STORE, 'readonly');
-      const req = tx.objectStore(DB_STORE).get(key);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => reject(req.error);
-    });
-  }
-  async function idbDel(key) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(DB_STORE, 'readwrite');
-      tx.objectStore(DB_STORE).delete(key);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
   function fmtBytes(n) {
     if (n == null) return '';
     if (n < 1024) return n + ' B';
@@ -1255,664 +883,40 @@
     published: { label: 'Published', classes: 'bg-emerald-50 text-emerald-700' },
   };
 
-  function uid(prefix='id') {
+  function uid(prefix = 'id') {
     return prefix + '_' + Math.random().toString(36).slice(2, 10);
   }
 
-  function loadState() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch (e) {}
-    return seed();
-  }
-
-  function saveState(state) {
-    state.updatedAt = Date.now();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }
-
-  function seed() {
-    const now = Date.now();
-    const day = 24*60*60*1000;
-    return {
-      projects: [
-        {
-          id: uid('p'), name: 'Instant Estimation',
-          description: 'On-the-spot quote builder for field techs. Exploring single-screen vs guided flows.',
-          icon: 'calculator', cover: 'orange',
-          owner: 'Ragavan T', createdAt: now - 14*day, updatedAt: now - 1*day,
-          versions: [
-            { id: uid('v'), label: 'v0.1', name: 'Single-screen calculator', status: 'draft',     notes: 'Everything on one canvas.',     createdAt: now - 14*day, updatedAt: now - 14*day },
-            { id: uid('v'), label: 'v0.2', name: 'Two-step intake',          status: 'review',    notes: 'Collect job type, then price.', createdAt: now - 8*day,  updatedAt: now - 3*day },
-            { id: uid('v'), label: 'v1.0', name: 'Guided wizard',            status: 'published', notes: 'Shipped to internal pilot.',     createdAt: now - 4*day,  updatedAt: now - 1*day },
-          ]
-        },
-        {
-          id: uid('p'), name: 'Customer Portal Redesign',
-          description: 'Refreshed self-serve portal — modern hierarchy, light theme, fewer clicks to job status.',
-          icon: 'users', cover: 'indigo',
-          owner: 'Ragavan T', createdAt: now - 30*day, updatedAt: now - 2*day,
-          versions: [
-            { id: uid('v'), label: 'v0.1', name: 'Light theme exploration', status: 'review',    notes: 'Light bg, slate text.',         createdAt: now - 30*day, updatedAt: now - 20*day },
-            { id: uid('v'), label: 'v0.2', name: 'Compact dashboard',       status: 'draft',     notes: 'Density-first card layout.',     createdAt: now - 10*day, updatedAt: now - 2*day },
-          ]
-        },
-        {
-          id: uid('p'), name: 'Field Worker Mobile',
-          description: 'Phone-first job execution — punch list, photos, signature, in one screen.',
-          icon: 'device-mobile', cover: 'emerald',
-          owner: 'Ragavan T', createdAt: now - 7*day, updatedAt: now - 6*60*60*1000,
-          versions: [
-            { id: uid('v'), label: 'v0.1', name: 'Bottom sheet flow',  status: 'draft', notes: 'Sheet rises with task detail.', createdAt: now - 7*day, updatedAt: now - 6*60*60*1000 },
-          ]
-        }
-      ],
-      updatedAt: now
-    };
-  }
-
-  let state = loadState();
-  let view = 'grid';
-  let activeProjectId = null;
-
-  // -------- HELPERS --------
   function fmtRelative(ts) {
     const diff = Date.now() - ts;
-    const min = 60*1000, hr = 60*min, day = 24*hr;
+    const min = 60 * 1000, hr = 60 * min, day = 24 * hr;
     if (diff < min) return 'just now';
-    if (diff < hr)  return Math.floor(diff/min) + 'm ago';
-    if (diff < day) return Math.floor(diff/hr) + 'h ago';
-    if (diff < 30*day) return Math.floor(diff/day) + 'd ago';
+    if (diff < hr)  return Math.floor(diff / min) + 'm ago';
+    if (diff < day) return Math.floor(diff / hr) + 'h ago';
+    if (diff < 30 * day) return Math.floor(diff / day) + 'd ago';
     const d = new Date(ts);
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
   function escapeHtml(s) {
-    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
 
   function coverFor(name) {
     return COVERS.find(c => c.name === name) || COVERS[0];
   }
 
-  function nextVersionLabel(project) {
-    const labels = (project.versions || []).map(v => v.label);
-    let major = 0, minor = 1;
-    labels.forEach(l => {
-      const m = /^v(\d+)\.(\d+)$/.exec(l);
-      if (m) {
-        const M = +m[1], n = +m[2];
-        if (M > major || (M === major && n >= minor)) {
-          major = M; minor = n + 1;
-        }
-      }
-    });
-    return `v${major}.${minor}`;
+  function shade(hex, percent) {
+    let R = parseInt(hex.substring(1,3), 16);
+    let G = parseInt(hex.substring(3,5), 16);
+    let B = parseInt(hex.substring(5,7), 16);
+    R = Math.max(0, Math.min(255, R + Math.round(R * percent / 100)));
+    G = Math.max(0, Math.min(255, G + Math.round(G * percent / 100)));
+    B = Math.max(0, Math.min(255, B + Math.round(B * percent / 100)));
+    return '#' + [R,G,B].map(v => v.toString(16).padStart(2,'0')).join('');
   }
 
-  // -------- RENDER --------
-  function renderStats() {
-    const projects = state.projects;
-    const versions = projects.reduce((s,p) => s + p.versions.length, 0);
-    const owners = new Set(projects.map(p => p.owner));
-    projects.forEach(p => p.versions.forEach(v => owners.add(v.owner || p.owner)));
-
-    document.querySelector('[data-stat="projects"]').textContent = projects.length;
-    document.querySelector('[data-stat="versions"]').textContent = versions;
-    document.querySelector('[data-stat="contributors"]').textContent = owners.size;
-
-    // Fake size estimate based on counts
-    const mb = (projects.length * 1.4 + versions * 0.6).toFixed(1);
-    document.querySelector('[data-stat="storage"]').textContent = mb + ' MB';
-  }
-
-  function renderProjects() {
-    const container = document.getElementById('projectsContainer');
-    const empty = document.getElementById('emptyState');
-    const q = document.getElementById('filterSearch').value.trim().toLowerCase();
-    const sortBy = document.getElementById('sortSelect').value;
-
-    let list = state.projects.slice();
-    if (q) {
-      list = list.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        (p.description||'').toLowerCase().includes(q) ||
-        (p.owner||'').toLowerCase().includes(q) ||
-        p.versions.some(v => v.name.toLowerCase().includes(q))
-      );
-    }
-    list.sort((a,b) => {
-      if (sortBy === 'name') return a.name.localeCompare(b.name);
-      if (sortBy === 'created') return b.createdAt - a.createdAt;
-      if (sortBy === 'versions') return b.versions.length - a.versions.length;
-      return b.updatedAt - a.updatedAt;
-    });
-
-    if (state.projects.length === 0) {
-      container.classList.add('hidden');
-      empty.classList.remove('hidden');
-      return;
-    }
-    empty.classList.add('hidden');
-    container.classList.remove('hidden');
-
-    if (view === 'grid') {
-      container.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4';
-      container.innerHTML = list.map(p => projectCardHTML(p)).join('') + newProjectCardHTML();
-    } else {
-      container.className = 'flex flex-col bg-white border border-ink-200 rounded-xl overflow-hidden divide-y divide-ink-100 shadow-card';
-      container.innerHTML = list.map(p => projectRowHTML(p)).join('');
-    }
-
-    container.querySelectorAll('[data-project-id]').forEach(el => {
-      el.addEventListener('click', (e) => {
-        if (e.target.closest('[data-noopen]')) return;
-        openDrawer(el.dataset.projectId);
-      });
-    });
-    const newCard = container.querySelector('[data-new-card]');
-    if (newCard) newCard.addEventListener('click', () => openModal('newProjectModal'));
-  }
-
-  function projectCardHTML(p) {
-    const c = coverFor(p.cover);
-    const last = p.versions[0] ? p.versions.slice().sort((a,b)=>b.updatedAt-a.updatedAt)[0] : null;
-    return `
-      <article data-project-id="${p.id}"
-        class="group cursor-pointer bg-white border border-ink-200 rounded-xl overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all">
-        <div class="relative h-24 bg-gradient-to-br ${c.grad} overflow-hidden">
-          <div class="absolute inset-0 ${c.pat} opacity-70"></div>
-          <div class="absolute top-3 right-3 inline-flex items-center gap-1 h-6 px-2 rounded-md bg-white/90 backdrop-blur text-[11px] font-medium text-ink-700">
-            <i class="ti ti-versions text-[13px]"></i>${p.versions.length}
-          </div>
-        </div>
-        <div class="px-4 pt-3 pb-4 -mt-6 relative">
-          <div class="h-11 w-11 rounded-xl bg-white border border-ink-200 shadow-card flex items-center justify-center text-ink-700">
-            <i class="ti ti-${escapeHtml(p.icon)} text-xl"></i>
-          </div>
-          <h3 class="mt-3 text-[15px] font-semibold text-ink-900 leading-snug truncate">${escapeHtml(p.name)}</h3>
-          <p class="mt-1 text-[13px] text-ink-500 line-clamp-2 min-h-[2.6em]">${escapeHtml(p.description || '—')}</p>
-
-          <div class="mt-3 flex items-center justify-between text-[11.5px] text-ink-500">
-            <span class="inline-flex items-center gap-1.5"><i class="ti ti-clock text-sm"></i>${fmtRelative(p.updatedAt)}</span>
-            <span class="inline-flex items-center gap-1.5">
-              ${last ? `<span class="inline-flex items-center gap-1 px-1.5 h-5 rounded ${STATUS_STYLES[last.status].classes} text-[10.5px] font-medium">${STATUS_STYLES[last.status].label}</span>` : ''}
-              <span class="text-ink-400">${last ? last.label : ''}</span>
-            </span>
-          </div>
-        </div>
-      </article>
-    `;
-  }
-
-  function projectRowHTML(p) {
-    const c = coverFor(p.cover);
-    const last = p.versions.slice().sort((a,b)=>b.updatedAt-a.updatedAt)[0];
-    return `
-      <div data-project-id="${p.id}" class="flex items-center gap-4 px-4 py-3 hover:bg-ink-50 cursor-pointer">
-        <div class="h-10 w-10 rounded-lg flex items-center justify-center text-white" style="background:${c.hex}">
-          <i class="ti ti-${escapeHtml(p.icon)} text-lg"></i>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <h3 class="text-sm font-semibold text-ink-900 truncate">${escapeHtml(p.name)}</h3>
-            <span class="inline-flex items-center gap-1 h-5 px-1.5 rounded bg-ink-100 text-ink-600 text-[10.5px] font-medium">${p.versions.length} versions</span>
-          </div>
-          <p class="text-[12.5px] text-ink-500 truncate">${escapeHtml(p.description || '—')}</p>
-        </div>
-        <div class="hidden md:block text-[12px] text-ink-500 w-32">${escapeHtml(p.owner)}</div>
-        <div class="hidden md:block text-[12px] text-ink-500 w-28">${fmtRelative(p.updatedAt)}</div>
-        <div class="text-ink-400"><i class="ti ti-chevron-right"></i></div>
-      </div>
-    `;
-  }
-
-  function newProjectCardHTML() {
-    return `
-      <button data-new-card type="button"
-        class="group bg-white border-2 border-dashed border-ink-200 hover:border-brand-300 hover:bg-brand-50/30 rounded-xl flex flex-col items-center justify-center gap-2 min-h-[230px] transition-colors text-ink-500 hover:text-brand-600">
-        <div class="h-11 w-11 rounded-xl bg-ink-100 group-hover:bg-brand-100 flex items-center justify-center"><i class="ti ti-plus text-xl"></i></div>
-        <div class="text-sm font-medium">New project</div>
-        <div class="text-[12px] text-ink-400 group-hover:text-brand-600/80">Create a fresh prototype space</div>
-      </button>
-    `;
-  }
-
-  // -------- DRAWER --------
-  function openDrawer(projectId) {
-    activeProjectId = projectId;
-    const p = state.projects.find(x => x.id === projectId);
-    if (!p) return;
-    const c = coverFor(p.cover);
-
-    const root = document.getElementById('drawerRoot');
-    const scrim = document.getElementById('drawerScrim');
-    const panel = document.getElementById('drawerPanel');
-    const header = document.getElementById('drawerHeader');
-
-    document.getElementById('drawerTitle').textContent = p.name;
-    document.getElementById('drawerDesc').textContent = p.description || 'No description yet.';
-    document.getElementById('drawerOwner').textContent = p.owner;
-    document.getElementById('drawerUpdated').textContent = 'Updated ' + fmtRelative(p.updatedAt);
-    document.getElementById('drawerVersionCount').textContent = p.versions.length + (p.versions.length === 1 ? ' version' : ' versions');
-    document.getElementById('drawerIcon').innerHTML = `<i class="ti ti-${escapeHtml(p.icon)}" style="color:${c.hex}"></i>`;
-
-    header.style.background = `linear-gradient(135deg, ${c.hex} 0%, ${shade(c.hex, -20)} 100%)`;
-    header.querySelector('div').className = `absolute inset-0 ${c.pat}`;
-
-    renderVersions();
-
-    root.classList.remove('hidden');
-    requestAnimationFrame(() => {
-      scrim.style.opacity = '1';
-      panel.style.transform = 'translateX(0)';
-    });
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeDrawer() {
-    const root = document.getElementById('drawerRoot');
-    const scrim = document.getElementById('drawerScrim');
-    const panel = document.getElementById('drawerPanel');
-    scrim.style.opacity = '0';
-    panel.style.transform = 'translateX(100%)';
-    setTimeout(() => {
-      root.classList.add('hidden');
-      activeProjectId = null;
-      document.body.style.overflow = '';
-    }, 280);
-  }
-
-  function renderVersions() {
-    const p = state.projects.find(x => x.id === activeProjectId);
-    if (!p) return;
-    const list = document.getElementById('versionsList');
-    if (p.versions.length === 0) {
-      list.innerHTML = `
-        <li class="py-8 text-center">
-          <div class="mx-auto h-10 w-10 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center mb-2"><i class="ti ti-git-branch text-xl"></i></div>
-          <div class="text-sm font-medium text-ink-800">No versions yet</div>
-          <div class="text-[12px] text-ink-500">Create the first repo for this project.</div>
-        </li>`;
-      return;
-    }
-    const sorted = p.versions.slice().sort((a,b) => b.updatedAt - a.updatedAt);
-    list.innerHTML = sorted.map(v => versionRowHTML(v)).join('');
-    list.querySelectorAll('[data-del-version]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const vid = btn.dataset.delVersion;
-        confirmDialog({
-          title: 'Delete version?',
-          body: 'This removes the version and its attached HTML file.',
-          okLabel: 'Delete',
-          onOk: async () => {
-            const proj = state.projects.find(x => x.id === activeProjectId);
-            proj.versions = proj.versions.filter(v => v.id !== vid);
-            proj.updatedAt = Date.now();
-            saveState(state);
-            try { await idbDel(vid); } catch (e) {}
-            renderVersions();
-            renderProjects();
-            renderStats();
-            toast('Version deleted');
-          }
-        });
-      });
-    });
-    list.querySelectorAll('[data-status-toggle]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const vid = btn.dataset.statusToggle;
-        const proj = state.projects.find(x => x.id === activeProjectId);
-        const v = proj.versions.find(x => x.id === vid);
-        const order = ['draft','review','published'];
-        v.status = order[(order.indexOf(v.status) + 1) % order.length];
-        v.updatedAt = Date.now();
-        proj.updatedAt = Date.now();
-        saveState(state);
-        renderVersions();
-        renderProjects();
-      });
-    });
-    list.querySelectorAll('[data-preview-version]').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        await previewVersion(btn.dataset.previewVersion);
-      });
-    });
-    list.querySelectorAll('[data-download-version]').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        await downloadVersion(btn.dataset.downloadVersion);
-      });
-    });
-    list.querySelectorAll('[data-attach-version], [data-replace-version]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const vid = btn.dataset.attachVersion || btn.dataset.replaceVersion;
-        attachToVersion(vid);
-      });
-    });
-    list.querySelectorAll('[data-kebab-version]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openKebab(btn, btn.dataset.kebabVersion);
-      });
-    });
-    list.querySelectorAll('[data-row-version]').forEach(li => {
-      li.addEventListener('click', async (e) => {
-        if (e.target.closest('button')) return;
-        const vid = li.dataset.rowVersion;
-        if (li.dataset.rowAction === 'preview') {
-          await previewVersion(vid);
-        } else {
-          attachToVersion(vid);
-        }
-      });
-    });
-  }
-
-  function openKebab(anchor, vid) {
-    const proj = state.projects.find(x => x.id === activeProjectId);
-    const v = proj && proj.versions.find(x => x.id === vid);
-    if (!v) return;
-    const menu = document.getElementById('kebabMenu');
-    const hasFile = !!v.file;
-    const item = (icon, label, handler, danger=false) => {
-      const cls = danger
-        ? 'w-full text-left px-3 py-1.5 hover:bg-red-50 text-red-600 flex items-center gap-2'
-        : 'w-full text-left px-3 py-1.5 hover:bg-ink-50 text-ink-700 flex items-center gap-2';
-      return `<button class="${cls}" data-mi="${handler}"><i class="ti ti-${icon} text-base text-ink-500"></i>${label}</button>`;
-    };
-    const isBundle = hasFile && v.file.kind === 'bundle';
-    menu.innerHTML = [
-      hasFile ? item('eye', 'Preview', 'preview') : '',
-      (hasFile && !isBundle) ? item('download', 'Download', 'download') : '',
-      isBundle ? '' : (hasFile ? item('refresh', 'Replace HTML', 'attach') : item('paperclip', 'Attach HTML', 'attach')),
-      item('copy', 'Duplicate version', 'duplicate'),
-      item('pencil', 'Rename', 'rename'),
-      '<div class="my-1 h-px bg-ink-100"></div>',
-      item('trash', 'Delete', 'delete', true),
-    ].filter(Boolean).join('');
-
-    // Position below the kebab button, right-aligned
-    const r = anchor.getBoundingClientRect();
-    menu.style.visibility = 'hidden';
-    menu.classList.remove('hidden');
-    const mw = menu.offsetWidth;
-    const mh = menu.offsetHeight;
-    let top = r.bottom + 4;
-    let left = r.right - mw;
-    if (top + mh > window.innerHeight - 8) top = r.top - mh - 4;
-    if (left < 8) left = 8;
-    menu.style.top = top + 'px';
-    menu.style.left = left + 'px';
-    menu.style.visibility = '';
-
-    menu.querySelectorAll('[data-mi]').forEach(b => {
-      b.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const action = b.dataset.mi;
-        closeKebab();
-        if (action === 'preview') await previewVersion(vid);
-        else if (action === 'download') await downloadVersion(vid);
-        else if (action === 'attach') attachToVersion(vid);
-        else if (action === 'duplicate') duplicateVersion(vid);
-        else if (action === 'rename') renameVersion(vid);
-        else if (action === 'delete') {
-          confirmDialog({
-            title: 'Delete version?',
-            body: 'This removes the version and its attached HTML file.',
-            okLabel: 'Delete',
-            onOk: async () => {
-              const p = state.projects.find(x => x.id === activeProjectId);
-              p.versions = p.versions.filter(x => x.id !== vid);
-              p.updatedAt = Date.now();
-              saveState(state);
-              try { await idbDel(vid); } catch (e) {}
-              renderVersions(); renderProjects(); renderStats();
-              toast('Version deleted');
-            }
-          });
-        }
-      });
-    });
-  }
-  function closeKebab() {
-    document.getElementById('kebabMenu').classList.add('hidden');
-  }
-  document.addEventListener('click', (e) => {
-    const menu = document.getElementById('kebabMenu');
-    if (menu.classList.contains('hidden')) return;
-    if (!menu.contains(e.target)) closeKebab();
-  });
-  window.addEventListener('resize', closeKebab);
-  window.addEventListener('scroll', closeKebab, true);
-
-  async function duplicateVersion(vid) {
-    const p = state.projects.find(x => x.id === activeProjectId);
-    const v = p && p.versions.find(x => x.id === vid);
-    if (!v) return;
-    const now = Date.now();
-    const copy = {
-      ...v,
-      id: uid('v'),
-      label: nextVersionLabel(p),
-      name: v.name + ' (copy)',
-      createdAt: now,
-      updatedAt: now,
-    };
-    if (v.file) {
-      try {
-        const blob = await idbGet(vid);
-        if (blob) await idbPut(copy.id, blob);
-        copy.file = { ...v.file, storedAt: now };
-      } catch (e) { console.error(e); }
-    }
-    p.versions.unshift(copy);
-    p.updatedAt = now;
-    saveState(state);
-    renderVersions(); renderProjects(); renderStats();
-    toast(`${copy.label} duplicated from ${v.label}`);
-  }
-
-  function renameVersion(vid) {
-    const p = state.projects.find(x => x.id === activeProjectId);
-    const v = p && p.versions.find(x => x.id === vid);
-    if (!v) return;
-    const nv = prompt('Rename version', v.name);
-    if (!nv || !nv.trim()) return;
-    v.name = nv.trim();
-    v.updatedAt = Date.now();
-    p.updatedAt = Date.now();
-    saveState(state);
-    renderVersions(); renderProjects();
-    toast('Version renamed');
-  }
-
-  async function previewVersion(vid) {
-    const stored = await idbGet(vid);
-    if (!stored) { toast('No file stored for this version', 'err'); return; }
-    let blob;
-    try {
-      blob = (stored instanceof Blob) ? stored : await rewriteBundleToBlob(stored);
-    } catch (err) {
-      console.error(err);
-      toast('Could not build preview', 'err');
-      return;
-    }
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url, '_blank');
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    if (!win) toast('Preview blocked — allow popups to view', 'err');
-  }
-
-  async function downloadVersion(vid) {
-    const proj = state.projects.find(x => x.id === activeProjectId);
-    const v = proj && proj.versions.find(x => x.id === vid);
-    if (!v) return;
-    const blob = await idbGet(vid);
-    if (!blob) { toast('No file stored for this version', 'err'); return; }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = (v.file && v.file.name) || `${proj.name}-${v.label}.html`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 5_000);
-  }
-
-  function attachToVersion(vid) {
-    const input = document.getElementById('attachFileInput');
-    input.value = '';
-    input.onchange = async () => {
-      const file = input.files && input.files[0];
-      if (!file) return;
-      const proj = state.projects.find(x => x.id === activeProjectId);
-      const v = proj && proj.versions.find(x => x.id === vid);
-      if (!v) return;
-      try {
-        await idbPut(vid, new Blob([await file.arrayBuffer()], { type: 'text/html' }));
-        v.file = { name: file.name, size: file.size, storedAt: Date.now() };
-        v.updatedAt = Date.now();
-        proj.updatedAt = Date.now();
-        saveState(state);
-        renderVersions();
-        renderProjects();
-        renderStats();
-        toast(`Attached ${file.name}`);
-      } catch (err) {
-        console.error(err);
-        toast('Could not store file (storage may be full)', 'err');
-      }
-    };
-    input.click();
-  }
-
-  function versionRowHTML(v) {
-    const s = STATUS_STYLES[v.status];
-    const hasFile = !!v.file;
-    const rowAction = hasFile ? 'preview' : 'attach';
-    return `
-      <li data-row-version="${v.id}" data-row-action="${rowAction}"
-          class="group relative bg-white border border-ink-200 rounded-xl p-3.5 hover:border-ink-300 hover:shadow-card cursor-pointer transition">
-        <div class="flex items-start gap-3">
-          <div class="h-10 w-10 rounded-lg bg-ink-100 text-ink-700 flex items-center justify-center font-mono text-[11px] font-semibold shrink-0">${escapeHtml(v.label)}</div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 flex-wrap">
-              <h4 class="text-sm font-semibold text-ink-900 truncate">${escapeHtml(v.name)}</h4>
-              <button data-status-toggle="${v.id}" title="Click to cycle status" class="inline-flex items-center gap-1 h-5 px-1.5 rounded ${s.classes} text-[10.5px] font-medium hover:opacity-80">
-                <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>${s.label}
-              </button>
-            </div>
-            ${v.notes ? `<p class="mt-1 text-[12.5px] text-ink-500 line-clamp-2">${escapeHtml(v.notes)}</p>` : ''}
-            <div class="mt-2 flex items-center flex-wrap gap-x-3 gap-y-1 text-[11.5px] text-ink-500">
-              <span class="inline-flex items-center gap-1"><i class="ti ti-git-branch text-sm"></i>${escapeHtml(v.label)} · main</span>
-              <span class="inline-flex items-center gap-1"><i class="ti ti-clock text-sm"></i>${fmtRelative(v.updatedAt)}</span>
-              ${hasFile
-                ? (v.file.kind === 'bundle'
-                    ? `<span class="inline-flex items-center gap-1 text-ink-600"><i class="ti ti-folder text-sm text-brand-500"></i><span class="truncate max-w-[160px]">${escapeHtml(v.file.name)}</span><span class="text-ink-400">· ${v.file.fileCount} files · ${fmtBytes(v.file.size)}</span></span>`
-                    : `<span class="inline-flex items-center gap-1 text-ink-600"><i class="ti ti-file-type-html text-sm text-brand-500"></i><span class="truncate max-w-[180px]">${escapeHtml(v.file.name)}</span><span class="text-ink-400">· ${fmtBytes(v.file.size)}</span></span>`)
-                : `<span class="inline-flex items-center gap-1 text-amber-600"><i class="ti ti-paperclip text-sm"></i>No file attached</span>`}
-            </div>
-          </div>
-          <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
-            ${hasFile
-              ? `<button data-preview-version="${v.id}" class="h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-800 flex items-center justify-center" title="Preview"><i class="ti ti-eye text-base"></i></button>
-                 ${v.file.kind === 'bundle' ? '' : `<button data-replace-version="${v.id}" class="h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-800 flex items-center justify-center" title="Replace HTML"><i class="ti ti-refresh text-base"></i></button>`}`
-              : `<button data-attach-version="${v.id}" class="h-8 w-8 rounded-lg hover:bg-brand-50 text-ink-500 hover:text-brand-600 flex items-center justify-center" title="Attach HTML"><i class="ti ti-paperclip text-base"></i></button>`}
-            <button data-kebab-version="${v.id}" class="h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-800 flex items-center justify-center" title="More"><i class="ti ti-dots-vertical text-base"></i></button>
-            <button data-del-version="${v.id}" class="h-8 w-8 rounded-lg hover:bg-red-50 hover:text-red-600 text-ink-500 flex items-center justify-center" title="Delete"><i class="ti ti-trash text-base"></i></button>
-          </div>
-        </div>
-      </li>
-    `;
-  }
-
-  // -------- ICON & COLOR PICKERS --------
-  let pickedIcon = ICONS[0];
-  let pickedCover = COVERS[0].name;
-  let pendingVersionFile = null;
-
-  function buildPickers() {
-    const ip = document.getElementById('iconPicker');
-    ip.innerHTML = ICONS.map(name => `
-      <button type="button" data-icon="${name}"
-        class="icon-pick h-9 w-full rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-700 flex items-center justify-center">
-        <i class="ti ti-${name} text-lg"></i>
-      </button>`).join('');
-    ip.querySelectorAll('.icon-pick').forEach(b => {
-      b.addEventListener('click', () => {
-        pickedIcon = b.dataset.icon;
-        ip.querySelectorAll('.icon-pick').forEach(x => x.classList.remove('border-brand-500','bg-brand-50','text-brand-700'));
-        b.classList.add('border-brand-500','bg-brand-50','text-brand-700');
-      });
-    });
-    ip.querySelector(`[data-icon="${pickedIcon}"]`).classList.add('border-brand-500','bg-brand-50','text-brand-700');
-
-    const cp = document.getElementById('colorPicker');
-    cp.innerHTML = COVERS.map(c => `
-      <button type="button" data-cover="${c.name}"
-        class="color-pick h-9 w-full rounded-lg border-2 border-transparent flex items-center justify-center"
-        style="background:${c.hex}" title="${c.name}"></button>`).join('');
-    cp.querySelectorAll('.color-pick').forEach(b => {
-      b.addEventListener('click', () => {
-        pickedCover = b.dataset.cover;
-        cp.querySelectorAll('.color-pick').forEach(x => x.classList.remove('ring-2','ring-offset-2','ring-ink-900'));
-        b.classList.add('ring-2','ring-offset-2','ring-ink-900');
-      });
-    });
-    cp.querySelector(`[data-cover="${pickedCover}"]`).classList.add('ring-2','ring-offset-2','ring-ink-900');
-  }
-
-  // -------- MODALS --------
-  function openModal(id) {
-    const m = document.getElementById(id);
-    m.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-    if (id === 'newProjectModal') {
-      pickedIcon = ICONS[Math.floor(Math.random()*ICONS.length)];
-      pickedCover = COVERS[Math.floor(Math.random()*COVERS.length)].name;
-      buildPickers();
-      const f = document.getElementById('newProjectForm');
-      f.reset();
-      f.querySelector('[name="owner"]').value = 'Ragavan T';
-      setTimeout(() => f.querySelector('[name="name"]').focus(), 50);
-    } else if (id === 'newVersionModal') {
-      const f = document.getElementById('newVersionForm');
-      f.reset();
-      pendingVersionFile = null;
-      document.getElementById('versionFileInput').value = '';
-      document.getElementById('dropEmpty').classList.remove('hidden');
-      document.getElementById('dropFilled').classList.add('hidden');
-      const proj = state.projects.find(x => x.id === activeProjectId);
-      document.getElementById('versionLabelPreview').textContent = `Will be tagged as ${nextVersionLabel(proj)} · main`;
-      setTimeout(() => f.querySelector('[name="name"]').focus(), 50);
-    }
-  }
-  function closeAllModals() {
-    ['newProjectModal','newVersionModal','importProjectModal','confirmModal'].forEach(id => {
-      document.getElementById(id).classList.add('hidden');
-    });
-    if (!document.getElementById('drawerRoot').classList.contains('hidden')) return; // keep scroll lock for drawer
-    document.body.style.overflow = '';
-  }
-
-  // -------- CONFIRM --------
-  let confirmHandler = null;
-  function confirmDialog({ title, body, okLabel='Delete', onOk }) {
-    document.getElementById('confirmTitle').textContent = title;
-    document.getElementById('confirmBody').textContent = body;
-    document.getElementById('confirmOk').textContent = okLabel;
-    confirmHandler = onOk;
-    openModal('confirmModal');
-  }
-
-  // -------- TOAST --------
-  function toast(msg, kind='ok') {
+  function toast(msg, kind = 'ok') {
     const root = document.getElementById('toastRoot');
     const el = document.createElement('div');
     const icon = kind === 'ok' ? 'ti-check' : 'ti-alert-circle';
@@ -1924,714 +928,20 @@
     setTimeout(() => el.remove(), 2200);
   }
 
-  // -------- COLOR UTIL --------
-  function shade(hex, percent) {
-    let R = parseInt(hex.substring(1,3), 16);
-    let G = parseInt(hex.substring(3,5), 16);
-    let B = parseInt(hex.substring(5,7), 16);
-    R = Math.max(0, Math.min(255, R + Math.round(R * percent / 100)));
-    G = Math.max(0, Math.min(255, G + Math.round(G * percent / 100)));
-    B = Math.max(0, Math.min(255, B + Math.round(B * percent / 100)));
-    return '#' + [R,G,B].map(v => v.toString(16).padStart(2,'0')).join('');
-  }
-
-  // -------- WIRING --------
-  document.getElementById('openNewProjectBtn').addEventListener('click', () => openModal('newProjectModal'));
-  document.getElementById('emptyCreateBtn').addEventListener('click', () => openModal('newProjectModal'));
-  document.getElementById('openImportBtn').addEventListener('click', () => {
-    const inp = document.getElementById('importFolderInput');
-    inp.value = '';
-    inp.click();
-  });
-  document.getElementById('importChooseAgain').addEventListener('click', () => {
-    document.getElementById('importFolderInput').click();
-  });
-  document.getElementById('importFolderInput').addEventListener('change', () => {
-    const files = Array.from(document.getElementById('importFolderInput').files || []);
-    if (files.length === 0) return;
-    prepareImportModal(files);
-  });
-  document.getElementById('closeDrawerBtn').addEventListener('click', closeDrawer);
-  document.getElementById('drawerScrim').addEventListener('click', closeDrawer);
-  document.querySelectorAll('.closeModalBtn').forEach(b => b.addEventListener('click', closeAllModals));
-  document.querySelectorAll('.modal-backdrop').forEach(b => b.addEventListener('click', closeAllModals));
-
-  document.getElementById('confirmCancel').addEventListener('click', closeAllModals);
-  document.getElementById('confirmOk').addEventListener('click', () => {
-    if (confirmHandler) { confirmHandler(); confirmHandler = null; }
-    closeAllModals();
-  });
-
-  document.getElementById('newVersionBtn').addEventListener('click', () => openModal('newVersionModal'));
-
-  document.getElementById('renameProjectBtn').addEventListener('click', () => {
-    const p = state.projects.find(x => x.id === activeProjectId);
-    const nv = prompt('Rename project', p.name);
-    if (!nv || !nv.trim()) return;
-    p.name = nv.trim();
-    p.updatedAt = Date.now();
-    saveState(state);
-    document.getElementById('drawerTitle').textContent = p.name;
-    renderProjects();
-    renderStats();
-    toast('Project renamed');
-  });
-
-  document.getElementById('deleteProjectBtn').addEventListener('click', () => {
-    const p = state.projects.find(x => x.id === activeProjectId);
-    confirmDialog({
-      title: `Delete "${p.name}"?`,
-      body: 'All versions and their attached HTML files will be removed.',
-      okLabel: 'Delete project',
-      onOk: async () => {
-        const versionIds = (p.versions || []).map(v => v.id);
-        state.projects = state.projects.filter(x => x.id !== activeProjectId);
-        saveState(state);
-        await Promise.all(versionIds.map(id => idbDel(id).catch(() => {})));
-        closeDrawer();
-        renderProjects();
-        renderStats();
-        toast('Project deleted');
-      }
-    });
-  });
-
-  document.getElementById('newProjectForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const now = Date.now();
-    const p = {
-      id: uid('p'),
-      name: (fd.get('name')||'').trim(),
-      description: (fd.get('description')||'').trim(),
-      owner: (fd.get('owner')||'').trim() || 'Unknown',
-      icon: pickedIcon,
-      cover: pickedCover,
-      createdAt: now,
-      updatedAt: now,
-      versions: []
-    };
-    state.projects.unshift(p);
-    saveState(state);
-    closeAllModals();
-    renderProjects();
-    renderStats();
-    openDrawer(p.id);
-    toast(`"${p.name}" created on Zuper Server`);
-  });
-
-  document.getElementById('newVersionForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const proj = state.projects.find(x => x.id === activeProjectId);
-    if (!proj) return;
-    const fd = new FormData(e.target);
-    const now = Date.now();
-    const v = {
-      id: uid('v'),
-      label: nextVersionLabel(proj),
-      name: (fd.get('name')||'').trim(),
-      notes: (fd.get('notes')||'').trim(),
-      status: fd.get('status') || 'draft',
-      createdAt: now,
-      updatedAt: now
-    };
-    if (pendingVersionFile) {
-      try {
-        await idbPut(v.id, new Blob([await pendingVersionFile.arrayBuffer()], { type: 'text/html' }));
-        v.file = { name: pendingVersionFile.name, size: pendingVersionFile.size, storedAt: now };
-      } catch (err) {
-        console.error(err);
-        toast('Could not store file (storage may be full)', 'err');
-        return;
-      }
-    }
-    proj.versions.unshift(v);
-    proj.updatedAt = now;
-    saveState(state);
-    pendingVersionFile = null;
-    closeAllModals();
-    renderVersions();
-    renderProjects();
-    renderStats();
-    toast(`${v.label} added to "${proj.name}"`);
-  });
-
-  document.querySelectorAll('.view-toggle').forEach(btn => {
-    btn.addEventListener('click', () => {
-      view = btn.dataset.view;
-      document.querySelectorAll('.view-toggle').forEach(b => {
-        const active = b.dataset.view === view;
-        b.classList.toggle('bg-white', active);
-        b.classList.toggle('shadow-sm', active);
-        b.classList.toggle('text-ink-700', active);
-        b.classList.toggle('text-ink-500', !active);
-      });
-      renderProjects();
-    });
-  });
-
-  ['filterSearch','sortSelect'].forEach(id => {
-    document.getElementById(id).addEventListener('input', renderProjects);
-  });
-  document.getElementById('sortSelect').addEventListener('change', renderProjects);
-
-  document.getElementById('globalSearch').addEventListener('input', (e) => {
-    document.getElementById('filterSearch').value = e.target.value;
-    renderProjects();
-  });
-
-  // Keyboard
+  // Hook ⌘K to focus the top-bar global search (single page now — wires here
+  // because the legacy global-search handler was removed with the old grid).
   document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-      e.preventDefault();
-      document.getElementById('globalSearch').focus();
-    }
-    if (e.key === 'Escape') {
-      if (!document.getElementById('kebabMenu').classList.contains('hidden')) { closeKebab(); return; }
-      if (!document.getElementById('confirmModal').classList.contains('hidden')) { closeAllModals(); return; }
-      if (!document.getElementById('newProjectModal').classList.contains('hidden')) { closeAllModals(); return; }
-      if (!document.getElementById('newVersionModal').classList.contains('hidden')) { closeAllModals(); return; }
-      if (!document.getElementById('drawerRoot').classList.contains('hidden')) { closeDrawer(); return; }
-    }
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n' && !e.shiftKey) {
-      e.preventDefault();
-      openModal('newProjectModal');
+      const el = document.getElementById('globalSearch');
+      if (el) { e.preventDefault(); el.focus(); }
     }
   });
 
-  // -------- DROP ZONE (New Version modal) --------
-  function setPendingFile(file) {
-    if (!file) return;
-    if (!/\.html?$/i.test(file.name) && file.type !== 'text/html') {
-      toast('Please pick an HTML file', 'err');
-      return;
-    }
-    pendingVersionFile = file;
-    document.getElementById('dropEmpty').classList.add('hidden');
-    const filled = document.getElementById('dropFilled');
-    filled.classList.remove('hidden');
-    document.getElementById('dropFileName').textContent = file.name;
-    document.getElementById('dropFileSize').textContent = fmtBytes(file.size);
-  }
-  function clearPendingFile() {
-    pendingVersionFile = null;
-    document.getElementById('versionFileInput').value = '';
-    document.getElementById('dropEmpty').classList.remove('hidden');
-    document.getElementById('dropFilled').classList.add('hidden');
-  }
-
-  const dropEmpty = document.getElementById('dropEmpty');
-  const versionFileInput = document.getElementById('versionFileInput');
-  dropEmpty.addEventListener('click', () => versionFileInput.click());
-  versionFileInput.addEventListener('change', () => setPendingFile(versionFileInput.files && versionFileInput.files[0]));
-  document.getElementById('dropClear').addEventListener('click', clearPendingFile);
-  ['dragenter','dragover'].forEach(evt => dropEmpty.addEventListener(evt, (e) => {
-    e.preventDefault(); e.stopPropagation();
-    dropEmpty.classList.add('border-brand-500','bg-brand-50');
-  }));
-  ['dragleave','drop'].forEach(evt => dropEmpty.addEventListener(evt, (e) => {
-    e.preventDefault(); e.stopPropagation();
-    dropEmpty.classList.remove('border-brand-500','bg-brand-50');
-  }));
-  dropEmpty.addEventListener('drop', (e) => {
-    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    if (file) setPendingFile(file);
-  });
-
-  // -------- IMPORT (folder → project + initial bundle version) --------
-  let pendingImport = null; // { folderName, files: { path: File }, htmlPaths: [...] }
-  let importPickedIcon = ICONS[0];
-  let importPickedCover = COVERS[0].name;
-
-  // Skip dotfiles, lockfiles, and node_modules — typical Claude/Vite project clutter.
-  function shouldSkipImport(path) {
-    const segs = path.split('/');
-    if (segs.some(s => s === 'node_modules' || s === '.git' || s === 'dist-old' || s === '.next' || s === '.turbo' || s === '.cache')) return true;
-    const last = segs[segs.length - 1];
-    if (last.startsWith('.DS_Store')) return true;
-    return false;
-  }
-
-  function prepareImportModal(files) {
-    // Use webkitRelativePath; first segment is the folder name.
-    const root = (files[0].webkitRelativePath || files[0].name).split('/')[0];
-    const map = {};
-    let totalSize = 0;
-    files.forEach(f => {
-      const rel = (f.webkitRelativePath || f.name);
-      const path = rel.startsWith(root + '/') ? rel.slice(root.length + 1) : rel;
-      if (!path || shouldSkipImport(path)) return;
-      map[path] = f;
-      totalSize += f.size || 0;
-    });
-    const htmlPaths = Object.keys(map).filter(p => /\.html?$/i.test(p))
-      .sort((a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b));
-
-    if (htmlPaths.length === 0) {
-      toast('No HTML file found in this folder', 'err');
-      return;
-    }
-
-    pendingImport = { folderName: root, files: map, totalSize, htmlPaths };
-
-    // Pick a sensible default entry — root index.html if present.
-    const defaultEntry = htmlPaths.find(p => p === 'index.html')
-      || htmlPaths.find(p => /(^|\/)index\.html$/i.test(p))
-      || htmlPaths[0];
-
-    // Populate UI.
-    document.getElementById('importFolderName').textContent = root;
-    document.getElementById('importFolderMeta').textContent =
-      `${Object.keys(map).length} files · ${fmtBytes(totalSize)}`;
-
-    const sel = document.getElementById('importEntrySelect');
-    sel.innerHTML = htmlPaths.map(p => `<option value="${escapeHtml(p)}" ${p === defaultEntry ? 'selected' : ''}>${escapeHtml(p)}</option>`).join('');
-    document.getElementById('importEntryHint').textContent = htmlPaths.length === 1
-      ? 'Only one HTML file in this folder.'
-      : `${htmlPaths.length} HTML files found. Pick the one to use as the preview entry.`;
-
-    const f = document.getElementById('importProjectForm');
-    f.querySelector('[name="name"]').value = root.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    f.querySelector('[name="description"]').value = '';
-
-    importPickedIcon = ICONS[Math.floor(Math.random() * ICONS.length)];
-    importPickedCover = COVERS[Math.floor(Math.random() * COVERS.length)].name;
-    buildImportPickers();
-
-    openModal('importProjectModal');
-  }
-
-  function buildImportPickers() {
-    const ip = document.getElementById('importIconPicker');
-    ip.innerHTML = ICONS.map(name => `
-      <button type="button" data-icon="${name}"
-        class="i-icon-pick h-9 w-full rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-700 flex items-center justify-center">
-        <i class="ti ti-${name} text-lg"></i>
-      </button>`).join('');
-    ip.querySelectorAll('.i-icon-pick').forEach(b => {
-      b.addEventListener('click', () => {
-        importPickedIcon = b.dataset.icon;
-        ip.querySelectorAll('.i-icon-pick').forEach(x => x.classList.remove('border-brand-500','bg-brand-50','text-brand-700'));
-        b.classList.add('border-brand-500','bg-brand-50','text-brand-700');
-      });
-    });
-    ip.querySelector(`[data-icon="${importPickedIcon}"]`).classList.add('border-brand-500','bg-brand-50','text-brand-700');
-
-    const cp = document.getElementById('importColorPicker');
-    cp.innerHTML = COVERS.map(c => `
-      <button type="button" data-cover="${c.name}"
-        class="i-color-pick h-9 w-full rounded-lg border-2 border-transparent flex items-center justify-center"
-        style="background:${c.hex}" title="${c.name}"></button>`).join('');
-    cp.querySelectorAll('.i-color-pick').forEach(b => {
-      b.addEventListener('click', () => {
-        importPickedCover = b.dataset.cover;
-        cp.querySelectorAll('.i-color-pick').forEach(x => x.classList.remove('ring-2','ring-offset-2','ring-ink-900'));
-        b.classList.add('ring-2','ring-offset-2','ring-ink-900');
-      });
-    });
-    cp.querySelector(`[data-cover="${importPickedCover}"]`).classList.add('ring-2','ring-offset-2','ring-ink-900');
-  }
-
-  document.getElementById('importProjectForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!pendingImport) return;
-    const fd = new FormData(e.target);
-    const name = (fd.get('name')||'').trim();
-    const desc = (fd.get('description')||'').trim();
-    const entry = (fd.get('entry')||'').trim();
-    if (!name || !entry || !pendingImport.files[entry]) {
-      toast('Pick a valid entry HTML', 'err');
-      return;
-    }
-    const submitBtn = document.getElementById('importSubmitBtn');
-    submitBtn.disabled = true;
-    document.getElementById('importSubmitLabel').textContent = 'Importing…';
-    try {
-      const now = Date.now();
-      const projectId = uid('p');
-      const versionId = uid('v');
-
-      // Convert File map into a Blob map for IndexedDB storage.
-      const blobs = {};
-      for (const [path, file] of Object.entries(pendingImport.files)) {
-        blobs[path] = new Blob([await file.arrayBuffer()], { type: file.type || guessType(path) });
-      }
-      await idbPut(versionId, { kind: 'bundle', entry, files: blobs });
-
-      const project = {
-        id: projectId,
-        name,
-        description: desc,
-        owner: 'Ragavan T',
-        icon: importPickedIcon,
-        cover: importPickedCover,
-        createdAt: now,
-        updatedAt: now,
-        versions: [{
-          id: versionId,
-          label: 'v0.1',
-          name: 'Initial import',
-          notes: `Imported from ${pendingImport.folderName}`,
-          status: 'draft',
-          createdAt: now,
-          updatedAt: now,
-          file: {
-            kind: 'bundle',
-            name: pendingImport.folderName,
-            entry,
-            size: pendingImport.totalSize,
-            fileCount: Object.keys(pendingImport.files).length,
-            storedAt: now,
-          }
-        }]
-      };
-      state.projects.unshift(project);
-      saveState(state);
-      pendingImport = null;
-      closeAllModals();
-      renderProjects();
-      renderStats();
-      openDrawer(projectId);
-      toast(`Imported "${project.name}" (${project.versions[0].file.fileCount} files)`);
-    } catch (err) {
-      console.error(err);
-      toast('Import failed — see console', 'err');
-    } finally {
-      submitBtn.disabled = false;
-      document.getElementById('importSubmitLabel').textContent = 'Import project';
-    }
-  });
-
-  function guessType(path) {
-    const ext = path.split('.').pop().toLowerCase();
-    return ({
-      html: 'text/html', htm: 'text/html', css: 'text/css',
-      js: 'text/javascript', mjs: 'text/javascript', json: 'application/json',
-      svg: 'image/svg+xml', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
-      gif: 'image/gif', webp: 'image/webp', ico: 'image/x-icon',
-      woff: 'font/woff', woff2: 'font/woff2', ttf: 'font/ttf', otf: 'font/otf',
-      mp4: 'video/mp4', webm: 'video/webm', mp3: 'audio/mpeg',
-    })[ext] || 'application/octet-stream';
-  }
-
-  // -------- BUNDLE PREVIEW: rewrite relative URLs to Blob URLs --------
-  function resolveBundlePath(basePath, ref) {
-    if (!ref) return null;
-    if (/^(?:[a-z]+:|\/\/|#|data:|blob:|javascript:|mailto:)/i.test(ref)) return null;
-    const cleaned = ref.split('?')[0].split('#')[0];
-    if (!cleaned) return null;
-    const baseSegs = basePath.split('/').slice(0, -1);
-    const refSegs = cleaned.startsWith('/') ? cleaned.slice(1).split('/') : [...baseSegs, ...cleaned.split('/')];
-    const out = [];
-    for (const s of refSegs) {
-      if (s === '..') out.pop();
-      else if (s !== '.' && s !== '') out.push(s);
-    }
-    return out.join('/');
-  }
-
-  function rewriteCss(css, basePath, blobUrls) {
-    css = css.replace(/url\(\s*(['"]?)([^'"\)]+)\1\s*\)/g, (m, q, ref) => {
-      const r = resolveBundlePath(basePath, ref);
-      return (r && blobUrls.has(r)) ? `url(${blobUrls.get(r)})` : m;
-    });
-    css = css.replace(/@import\s+(?:url\(\s*)?(['"])([^'"]+)\1(?:\s*\))?/g, (m, q, ref) => {
-      const r = resolveBundlePath(basePath, ref);
-      return (r && blobUrls.has(r)) ? `@import "${blobUrls.get(r)}"` : m;
-    });
-    return css;
-  }
-
-  async function rewriteBundleToBlob(bundle) {
-    const { entry, files } = bundle;
-    if (!files[entry]) throw new Error('Entry file missing: ' + entry);
-    const blobUrls = new Map();
-    const cleanup = [];
-    const register = (path, blob) => {
-      const url = URL.createObjectURL(blob);
-      blobUrls.set(path, url);
-      cleanup.push(url);
-    };
-    // Pass 1: register everything except the entry HTML and CSS files (they need rewriting).
-    for (const [path, blob] of Object.entries(files)) {
-      if (path === entry) continue;
-      if (/\.css$/i.test(path)) continue;
-      register(path, blob);
-    }
-    // Pass 2: rewrite CSS files (they may reference other assets).
-    for (const [path, blob] of Object.entries(files)) {
-      if (!/\.css$/i.test(path)) continue;
-      const text = await blob.text();
-      const rewritten = rewriteCss(text, path, blobUrls);
-      register(path, new Blob([rewritten], { type: 'text/css' }));
-    }
-    // Pass 3: rewrite the entry HTML.
-    const html = await files[entry].text();
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const swapAttr = (sel, attr) => {
-      doc.querySelectorAll(sel).forEach(el => {
-        const ref = el.getAttribute(attr);
-        const r = resolveBundlePath(entry, ref);
-        if (r && blobUrls.has(r)) el.setAttribute(attr, blobUrls.get(r));
-      });
-    };
-    swapAttr('link[href]', 'href');
-    swapAttr('script[src]', 'src');
-    swapAttr('img[src]', 'src');
-    swapAttr('source[src]', 'src');
-    swapAttr('video[src]', 'src');
-    swapAttr('audio[src]', 'src');
-    swapAttr('iframe[src]', 'src');
-    swapAttr('use[href]', 'href');
-    doc.querySelectorAll('[srcset]').forEach(el => {
-      const v = el.getAttribute('srcset') || '';
-      const newV = v.split(',').map(part => {
-        const [ref, ...desc] = part.trim().split(/\s+/);
-        const r = resolveBundlePath(entry, ref);
-        return (r && blobUrls.has(r)) ? [blobUrls.get(r), ...desc].join(' ') : part;
-      }).join(', ');
-      el.setAttribute('srcset', newV);
-    });
-    doc.querySelectorAll('style').forEach(s => {
-      s.textContent = rewriteCss(s.textContent || '', entry, blobUrls);
-    });
-    doc.querySelectorAll('[style]').forEach(el => {
-      el.setAttribute('style', rewriteCss(el.getAttribute('style') || '', entry, blobUrls));
-    });
-    const out = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
-    // Revoke asset blob URLs after a window so the page loads them; long enough for typical static loads.
-    setTimeout(() => cleanup.forEach(u => URL.revokeObjectURL(u)), 5 * 60_000);
-    return new Blob([out], { type: 'text/html' });
-  }
-
-  // ────────────────────────── BRIDGE MODE ──────────────────────────
-  // When the dashboard is served by bridge.js (i.e. opened via http://localhost:5050),
-  // projects come from the filesystem and versions come from git branches.
-  // When opened directly as a file, the dashboard falls back to localStorage mode.
-
-  const isHttp = /^https?:$/.test(location.protocol);
-  let bridgeOn = false;
-  let bridgeInfo = null;
-  let pollTimer = null;
-
-  // Per-type defaults so the existing project card / drawer render unchanged.
-  const TYPE_META = {
-    html:          { icon: 'world',          cover: 'sky',     label: 'HTML' },
-    expo:          { icon: 'device-mobile',  cover: 'indigo',  label: 'Expo / React Native' },
-    'react-native':{ icon: 'device-mobile',  cover: 'emerald', label: 'React Native' },
-    next:          { icon: 'bolt',           cover: 'indigo',  label: 'Next.js' },
-    vite:          { icon: 'bolt',           cover: 'amber',   label: 'Vite' },
-    xcode:         { icon: 'brand-apple',    cover: 'rose',    label: 'Xcode / iOS' },
-    spm:           { icon: 'brand-swift',    cover: 'rose',    label: 'Swift Package' },
-    unknown:       { icon: 'folder',         cover: 'orange',  label: 'Project' },
-  };
-
-  function bridgeMapProjects(list) {
-    return list.map(p => {
-      const meta = TYPE_META[p.type] || TYPE_META.unknown;
-      const versions = (p.branches || []).map(b => ({
-        id: `${p.slug}/${b.name}`,
-        label: b.name,
-        name: b.message || `(${b.sha})`,
-        notes: `${b.author} · ${b.sha}`,
-        status: b.name === p.currentBranch ? 'published' : 'draft',
-        createdAt: new Date(b.lastCommit).getTime() || Date.now(),
-        updatedAt: new Date(b.lastCommit).getTime() || Date.now(),
-        _branch: b.name,
-        _isCurrent: b.name === p.currentBranch,
-      }));
-      const lastUpdated = versions.reduce((m, v) => Math.max(m, v.updatedAt), p.updatedAt || Date.now());
-      return {
-        id: p.slug,
-        name: p.name,
-        description: `${meta.label}${p.currentBranch ? ` · on ${p.currentBranch}` : ''}`,
-        owner: 'git',
-        icon: meta.icon,
-        cover: meta.cover,
-        createdAt: p.updatedAt || Date.now(),
-        updatedAt: lastUpdated,
-        versions,
-        _bridge: true,
-        _type: p.type,
-        _slug: p.slug,
-        _currentBranch: p.currentBranch,
-        _entry: p.entry,
-        _expoUrl: p.expoUrl,
-      };
-    });
-  }
-
-  async function bridgeFetchProjects() {
-    try {
-      const r = await fetch('/api/projects', { cache: 'no-store' });
-      if (!r.ok) return null;
-      return await r.json();
-    } catch { return null; }
-  }
-
-  async function bridgeRefresh() {
-    const data = await bridgeFetchProjects();
-    if (!data) return;
-    const list = Array.isArray(data) ? data : (data.projects || []);
-    if (data && data.currentBranch) bridgeInfo.currentBranch = data.currentBranch;
-    const prevDrawerId = activeProjectId;
-    state.projects = bridgeMapProjects(list);
-    renderProjects();
-    renderStats();
-    updateBridgeChip();
-    if (prevDrawerId && !document.getElementById('drawerRoot').classList.contains('hidden')) {
-      const p = state.projects.find(x => x.id === prevDrawerId);
-      if (p) {
-        document.getElementById('drawerVersionCount').textContent =
-          p.versions.length + (p.versions.length === 1 ? ' version' : ' versions');
-        renderVersions();
-      }
-    }
-  }
-
-  function updateBridgeChip() {
-    const chip = document.querySelector('header .flex.items-center.gap-3 span');
-    if (!chip) return;
-    const cb = bridgeInfo && bridgeInfo.currentBranch;
-    chip.innerHTML = `<span class="h-1.5 w-1.5 rounded-full bg-emerald-500 pulse-dot"></span>${cb ? `on <span class="font-mono">${cb}</span>` : 'Bridge connected'}`;
-  }
-
-  function applyBridgeUI() {
-    // Repurpose Import → "Open watched folder" since projects are folder-driven now.
-    const importBtn = document.getElementById('openImportBtn');
-    importBtn.innerHTML = '<i class="ti ti-folder-open text-base"></i>Open folder';
-    importBtn.onclick = async (e) => {
-      e.preventDefault(); e.stopImmediatePropagation();
-      try { await fetch('/api/projects/' + encodeURIComponent('') + 'open-finder', { method: 'POST' }); } catch {}
-      // Always works: open the parent path directly.
-      toast(`Watching ${bridgeInfo.parent}`);
-    };
-
-    // Hide actions that don't apply when the source of truth is git.
-    document.getElementById('openNewProjectBtn').style.display = 'none';
-    document.getElementById('emptyCreateBtn').textContent = 'Refresh';
-    document.getElementById('emptyCreateBtn').onclick = (e) => { e.preventDefault(); bridgeRefresh(); };
-
-    // Replace the workspace badge with a live "connected" chip.
-    const brand = document.querySelector('header .flex.items-center.gap-3');
-    if (brand) {
-      const badge = brand.querySelector('span');
-      if (badge) {
-        badge.className = 'hidden md:inline-flex items-center gap-1.5 h-6 px-2 rounded-md bg-emerald-50 text-emerald-700 text-[11px] font-medium';
-        badge.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-emerald-500 pulse-dot"></span>Bridge connected';
-      }
-    }
-
-    // Footer line: switch from "Synced to Zuper Server" to the real watched path.
-    const footer = document.querySelector('footer .flex.items-center.gap-1\\.5');
-    if (footer) {
-      footer.innerHTML = `<span class="h-1.5 w-1.5 rounded-full bg-emerald-500 pulse-dot"></span><span class="font-mono">${bridgeInfo.parent}</span>`;
-    }
-
-    // Hide the "+ New Version" button inside the drawer — versions are git branches.
-    const nvb = document.getElementById('newVersionBtn');
-    if (nvb) nvb.style.display = 'none';
-
-    // The header subtitle reads better with the new semantics.
-    const sub = document.querySelector('main section p.text-sm.text-ink-500');
-    if (sub) sub.textContent = `Every git repo under ${bridgeInfo.parent} is a project. Branches are versions. Push a new branch → it appears here.`;
-  }
-
-  // Bridge-aware preview: open the project's working tree directly.
-  // For non-current branches, we offer to checkout instead of previewing stale state.
-  async function bridgePreview(versionId) {
-    const [slug, ...rest] = versionId.split('/');
-    const branch = rest.join('/');
-    const proj = state.projects.find(x => x.id === slug);
-    if (!proj) return;
-    const v = proj.versions.find(x => x._branch === branch);
-    if (!v) return;
-
-    if (!v._isCurrent) {
-      const ok = confirm(`"${branch}" is not the currently checked-out branch.\n\nCheckout this branch now? (Working tree must be clean.)`);
-      if (!ok) return;
-      try {
-        const r = await fetch(`/api/projects/${encodeURIComponent(slug)}/checkout`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ branch }),
-        });
-        const d = await r.json();
-        if (!r.ok) { toast(d.error || 'Checkout failed', 'err'); return; }
-        toast(`Checked out ${branch}`);
-        await bridgeRefresh();
-      } catch (err) {
-        toast('Checkout failed', 'err');
-        return;
-      }
-    }
-
-    if (proj._type === 'html') {
-      window.open(`/preview/${encodeURIComponent(slug)}/`, '_blank');
-      return;
-    }
-    if (proj._type === 'expo') {
-      toast('Starting Expo dev server…');
-      try {
-        const r = await fetch(`/api/projects/${encodeURIComponent(slug)}/expo/start`, { method: 'POST' });
-        const d = await r.json();
-        if (!r.ok) { toast(d.error || 'Expo failed', 'err'); return; }
-        window.open(d.url, '_blank');
-      } catch { toast('Expo failed', 'err'); }
-      return;
-    }
-    if (proj._type === 'xcode' || proj._type === 'spm') {
-      await fetch(`/api/projects/${encodeURIComponent(slug)}/open-xcode`, { method: 'POST' });
-      toast('Opened in Xcode');
-      return;
-    }
-    if (proj._type === 'react-native') {
-      toast('Bare RN preview not supported — add Expo or open in Xcode', 'err');
-      return;
-    }
-    // Fallback: open the folder in Finder.
-    await fetch(`/api/projects/${encodeURIComponent(slug)}/open-finder`, { method: 'POST' });
-    toast('Opened in Finder');
-  }
-
-  async function initBridge() {
-    if (!isHttp) return false;
-    try {
-      const r = await fetch('/api/health', { cache: 'no-store' });
-      if (!r.ok) return false;
-      bridgeInfo = await r.json();
-    } catch { return false; }
-    bridgeOn = true;
-
-    // Override the preview entry point used by the row click + eye icon + kebab.
-    previewVersion = bridgePreview;
-    // Also hijack downloadVersion / attachToVersion to be no-ops with a hint.
-    downloadVersion = async () => toast('Download not supported in bridge mode — use git instead');
-    attachToVersion = () => toast('Attach not supported in bridge mode — commit on the branch instead');
-
-    applyBridgeUI();
-    await bridgeRefresh();
-
-    // Poll while the tab is visible.
-    const tick = () => { if (!document.hidden) bridgeRefresh(); };
-    pollTimer = setInterval(tick, 4000);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) bridgeRefresh(); });
-    return true;
-  }
-
-  // Promote the locally-declared functions to mutable holders so bridge mode can swap them.
-  // (They were declared with `function`, which means assignment lifts to the same scope.)
-  // First paint
-  (async () => {
-    const connected = await initBridge();
-    if (!connected) {
-      // Standalone (IndexedDB) mode — original behaviour.
-      renderProjects();
-      renderStats();
-    }
-    // Cloud projects (GitHub-linked) — always try; silently degrade if bridge is offline.
+  // Bootstrap — kick off the cloud projects view on load.
+  document.addEventListener('DOMContentLoaded', () => { initCloud(); });
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
     initCloud();
-  })();
+  }
 
   // ═══════════════════════════════════════════════════════════════════════
   // CLOUD PROJECTS — GitHub-linked projects with mixed version types.
@@ -2644,6 +954,9 @@
     pickedCover: COVERS[0].name,
     online: false,
   };
+
+  // Context for the edit modal — set by either the tile kebab or the version-view kebab.
+  const preview = { projectId: null, versionId: null };
 
   async function api(method, path, body) {
     const init = { method, headers: {} };
@@ -2674,11 +987,13 @@
       renderCloud();
     } catch (err) {
       cloud.online = false;
-      // Hide the whole cloud section if bridge is offline.
+      // Hide the whole projects grid if the bridge is offline.
       document.querySelectorAll('#cloudProjectsContainer, #cloudEmpty').forEach(el => el.classList.add('hidden'));
     }
     // Poll every 30s while tab visible.
     setInterval(() => { if (!document.hidden && cloud.online) refreshCloud(); }, 30_000);
+    // Route on initial load if a hash is present (e.g. shared link to a version).
+    applyHashRoute();
   }
 
   async function refreshCloud() {
@@ -2743,168 +1058,6 @@
       </article>`;
   }
 
-  function openCloudDrawer(id) {
-    const p = cloud.projects.find(x => x.id === id);
-    if (!p) return;
-    cloud.activeId = id;
-    const c = coverFor(p.cover);
-    const root = document.getElementById('cloudDrawerRoot');
-    const scrim = document.getElementById('cloudDrawerScrim');
-    const panel = document.getElementById('cloudDrawerPanel');
-    const header = document.getElementById('cloudDrawerHeader');
-
-    document.getElementById('cloudDrawerTitle').textContent = p.name;
-    document.getElementById('cloudDrawerDesc').textContent = p.description || 'No description.';
-    document.getElementById('cloudDrawerIcon').innerHTML = `<i class="ti ti-${escapeHtml(p.icon || 'rocket')}" style="color:${c.hex}"></i>`;
-    const repoEl = document.getElementById('cloudDrawerRepo');
-    if (p.githubRepo) {
-      repoEl.href = 'https://github.com/' + p.githubRepo;
-      repoEl.querySelector('span').textContent = p.githubRepo;
-      repoEl.classList.remove('hidden');
-    } else {
-      repoEl.classList.add('hidden');
-    }
-    document.getElementById('cloudDrawerVersionCount').textContent =
-      (p.versions || []).length + ' versions';
-    document.getElementById('cloudDrawerSynced').textContent =
-      p.lastSyncedAt ? 'Synced ' + fmtRelative(p.lastSyncedAt) : (p.githubRepo ? 'Not synced yet' : 'No repo linked');
-    const errEl = document.getElementById('cloudDrawerSyncErr');
-    if (p.lastSyncError) { errEl.classList.remove('hidden'); errEl.querySelector('span').textContent = p.lastSyncError; }
-    else errEl.classList.add('hidden');
-    header.style.background = `linear-gradient(135deg, ${c.hex} 0%, ${shade(c.hex, -20)} 100%)`;
-    header.querySelector('div').className = `absolute inset-0 ${c.pat}`;
-
-    renderCloudVersions();
-    root.classList.remove('hidden');
-    requestAnimationFrame(() => {
-      scrim.style.opacity = '1';
-      panel.style.transform = 'translateX(0)';
-    });
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeCloudDrawer() {
-    const root = document.getElementById('cloudDrawerRoot');
-    const scrim = document.getElementById('cloudDrawerScrim');
-    const panel = document.getElementById('cloudDrawerPanel');
-    scrim.style.opacity = '0';
-    panel.style.transform = 'translateX(100%)';
-    setTimeout(() => {
-      root.classList.add('hidden');
-      cloud.activeId = null;
-      document.body.style.overflow = '';
-    }, 280);
-  }
-
-  function renderCloudVersions() {
-    const p = cloud.projects.find(x => x.id === cloud.activeId);
-    if (!p) return;
-    const list = document.getElementById('cloudVersionsList');
-    const versions = (p.versions || []).slice().sort((a, b) => b.createdAt - a.createdAt);
-    if (versions.length === 0) {
-      list.innerHTML = `
-        <li class="py-8 text-center">
-          <div class="mx-auto h-10 w-10 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center mb-2"><i class="ti ti-versions text-xl"></i></div>
-          <div class="text-sm font-medium text-ink-800">No versions yet</div>
-          <div class="text-[12px] text-ink-500">${p.githubRepo ? 'Sync to pull commits, or' : 'Use'} <b>Add link</b> / <b>Upload</b>.</div>
-        </li>`;
-      return;
-    }
-    list.innerHTML = versions.map(v => cloudVersionRowHTML(v)).join('');
-    list.querySelectorAll('[data-cloud-del]').forEach(b => {
-      b.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const vid = b.dataset.cloudDel;
-        if (!confirm('Delete this version?')) return;
-        try {
-          await api('DELETE', `/api/cloud/projects/${p.id}/versions/${vid}`);
-          await refreshCloud();
-          toast('Version deleted');
-        } catch (err) { toast(err.message, 'err'); }
-      });
-    });
-  }
-
-  function cloudVersionRowHTML(v) {
-    if (v.type === 'commit') {
-      const meta = v.meta || {};
-      const sha = meta.shortSha || (meta.sha || '').slice(0, 7);
-      return `
-        <li class="group bg-white border border-ink-200 rounded-xl p-3.5 hover:border-ink-300 hover:shadow-card transition">
-          <div class="flex items-start gap-3">
-            <div class="h-10 w-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"><i class="ti ti-git-commit text-xl"></i></div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-mono text-[11px] text-ink-500">${escapeHtml(v.label)}</span>
-                <h4 class="text-sm font-semibold text-ink-900 truncate">${escapeHtml(v.name)}</h4>
-              </div>
-              <div class="mt-1.5 flex items-center flex-wrap gap-x-3 gap-y-1 text-[11.5px] text-ink-500">
-                ${meta.avatar ? `<img src="${escapeHtml(meta.avatar)}" class="h-4 w-4 rounded-full">` : '<i class="ti ti-user text-sm"></i>'}
-                <span>${escapeHtml(meta.author || 'unknown')}</span>
-                <span class="font-mono">${escapeHtml(sha)}</span>
-                <span><i class="ti ti-clock text-sm align-middle"></i> ${fmtRelative(v.createdAt)}</span>
-              </div>
-            </div>
-            <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
-              ${meta.url ? `<a href="${escapeHtml(meta.url)}" target="_blank" rel="noopener" class="h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-800 flex items-center justify-center" title="View on GitHub"><i class="ti ti-external-link text-base"></i></a>` : ''}
-              <button data-cloud-del="${v.id}" class="h-8 w-8 rounded-lg hover:bg-red-50 hover:text-red-600 text-ink-500 flex items-center justify-center" title="Delete"><i class="ti ti-trash text-base"></i></button>
-            </div>
-          </div>
-        </li>`;
-    }
-    if (v.type === 'url') {
-      const kindIcon = { vercel:'triangle', netlify:'world', loom:'video', youtube:'brand-youtube', figma:'brand-figma', github:'brand-github', gdrive:'brand-google-drive' }[v.urlKind] || 'link';
-      const kindLabel = (v.urlKind || 'link').replace(/^\w/, c => c.toUpperCase());
-      return `
-        <li class="group bg-white border border-ink-200 rounded-xl p-3.5 hover:border-ink-300 hover:shadow-card transition">
-          <div class="flex items-start gap-3">
-            <div class="h-10 w-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0"><i class="ti ti-${kindIcon} text-xl"></i></div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-mono text-[11px] text-ink-500">${escapeHtml(v.label)}</span>
-                <h4 class="text-sm font-semibold text-ink-900 truncate">${escapeHtml(v.name || v.url)}</h4>
-                <span class="inline-flex items-center gap-1 h-5 px-1.5 rounded bg-indigo-50 text-indigo-700 text-[10.5px] font-medium">${escapeHtml(kindLabel)}</span>
-              </div>
-              <a href="${escapeHtml(v.url)}" target="_blank" rel="noopener" class="mt-1 inline-block text-[12.5px] text-brand-600 hover:underline truncate max-w-full">${escapeHtml(v.url)}</a>
-              ${v.notes ? `<p class="mt-1 text-[12.5px] text-ink-500 line-clamp-2">${escapeHtml(v.notes)}</p>` : ''}
-              <div class="mt-1.5 text-[11.5px] text-ink-500"><i class="ti ti-clock text-sm align-middle"></i> ${fmtRelative(v.createdAt)}</div>
-            </div>
-            <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
-              <a href="${escapeHtml(v.url)}" target="_blank" rel="noopener" class="h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-800 flex items-center justify-center" title="Open"><i class="ti ti-external-link text-base"></i></a>
-              <button data-cloud-del="${v.id}" class="h-8 w-8 rounded-lg hover:bg-red-50 hover:text-red-600 text-ink-500 flex items-center justify-center" title="Delete"><i class="ti ti-trash text-base"></i></button>
-            </div>
-          </div>
-        </li>`;
-    }
-    // file
-    const isImg = v.fileKind === 'image';
-    const isVid = v.fileKind === 'video';
-    const fileUrl = `/uploads/${encodeURIComponent(cloud.activeId)}/${encodeURIComponent(v.storedName)}`;
-    return `
-      <li class="group bg-white border border-ink-200 rounded-xl p-3.5 hover:border-ink-300 hover:shadow-card transition">
-        <div class="flex items-start gap-3">
-          ${isImg
-            ? `<a href="${fileUrl}" target="_blank" rel="noopener" class="h-14 w-14 rounded-lg overflow-hidden bg-ink-100 shrink-0"><img src="${fileUrl}" class="w-full h-full object-cover"></a>`
-            : `<div class="h-10 w-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0"><i class="ti ti-${isVid?'video':'paperclip'} text-xl"></i></div>`}
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-mono text-[11px] text-ink-500">${escapeHtml(v.label)}</span>
-              <h4 class="text-sm font-semibold text-ink-900 truncate">${escapeHtml(v.name)}</h4>
-              <span class="inline-flex items-center gap-1 h-5 px-1.5 rounded bg-rose-50 text-rose-700 text-[10.5px] font-medium">${escapeHtml(v.fileKind || 'file')}</span>
-            </div>
-            <div class="mt-1 text-[12.5px] text-ink-500 truncate">${escapeHtml(v.filename)} · ${fmtBytes(v.size)}</div>
-            ${v.notes ? `<p class="mt-1 text-[12.5px] text-ink-500 line-clamp-2">${escapeHtml(v.notes)}</p>` : ''}
-            <div class="mt-1.5 text-[11.5px] text-ink-500"><i class="ti ti-clock text-sm align-middle"></i> ${fmtRelative(v.createdAt)}</div>
-            ${isVid ? `<video src="${fileUrl}" controls class="mt-2 max-w-full rounded-lg border border-ink-200"></video>` : ''}
-          </div>
-          <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
-            <a href="${fileUrl}" target="_blank" rel="noopener" class="h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-800 flex items-center justify-center" title="Open"><i class="ti ti-external-link text-base"></i></a>
-            <a href="${fileUrl}" download="${escapeHtml(v.filename)}" class="h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-800 flex items-center justify-center" title="Download"><i class="ti ti-download text-base"></i></a>
-            <button data-cloud-del="${v.id}" class="h-8 w-8 rounded-lg hover:bg-red-50 hover:text-red-600 text-ink-500 flex items-center justify-center" title="Delete"><i class="ti ti-trash text-base"></i></button>
-          </div>
-        </div>
-      </li>`;
-  }
 
   function buildCloudPickers() {
     const ip = document.getElementById('cloudIconPicker');
@@ -2947,25 +1100,19 @@
       const f = document.getElementById('cloudNewProjectForm');
       f.reset();
       setTimeout(() => f.querySelector('[name="githubRepo"]').focus(), 50);
-    } else if (id === 'cloudAddLinkModal') {
-      const f = document.getElementById('cloudAddLinkForm');
-      f.reset();
-      setTimeout(() => f.querySelector('[name="url"]').focus(), 50);
     }
   }
 
   function closeCloudModals() {
-    ['cloudNewProjectModal','cloudAddLinkModal'].forEach(id => document.getElementById(id).classList.add('hidden'));
-    if (document.getElementById('cloudDrawerRoot').classList.contains('hidden')) document.body.style.overflow = '';
+    document.getElementById('cloudNewProjectModal').classList.add('hidden');
+    document.body.style.overflow = '';
   }
 
   // Wiring
   document.getElementById('cloudNewProjectBtn').addEventListener('click', () => openCloudModal('cloudNewProjectModal'));
   document.getElementById('cloudEmptyAddBtn').addEventListener('click', () => openCloudModal('cloudNewProjectModal'));
   document.querySelectorAll('.closeCloudModalBtn').forEach(b => b.addEventListener('click', closeCloudModals));
-  document.querySelectorAll('#cloudNewProjectModal .modal-backdrop, #cloudAddLinkModal .modal-backdrop').forEach(b => b.addEventListener('click', closeCloudModals));
-  document.getElementById('closeCloudDrawerBtn').addEventListener('click', closeCloudDrawer);
-  document.getElementById('cloudDrawerScrim').addEventListener('click', closeCloudDrawer);
+  document.querySelectorAll('#cloudNewProjectModal .modal-backdrop').forEach(b => b.addEventListener('click', closeCloudModals));
 
   document.getElementById('cloudSyncAllBtn').addEventListener('click', async () => {
     const targets = cloud.projects.filter(p => p.githubRepo);
@@ -2980,29 +1127,7 @@
     toast(`${added} new commit${added===1?'':'s'} pulled${errors?` · ${errors} error(s)`:''}`);
   });
 
-  document.getElementById('cloudSyncBtn').addEventListener('click', async () => {
-    const p = cloud.projects.find(x => x.id === cloud.activeId);
-    if (!p) return;
-    if (!p.githubRepo) { toast('No GitHub repo linked', 'err'); return; }
-    try {
-      const r = await api('POST', `/api/cloud/projects/${p.id}/sync`);
-      await refreshCloud();
-      openCloudDrawer(p.id);
-      toast(`Sync done · ${r.added || 0} new commit${(r.added||0)===1?'':'s'}`);
-    } catch (err) { toast(err.message, 'err'); }
-  });
 
-  document.getElementById('cloudDeleteProjectBtn').addEventListener('click', async () => {
-    const p = cloud.projects.find(x => x.id === cloud.activeId);
-    if (!p) return;
-    if (!confirm(`Delete "${p.name}" and all its versions?`)) return;
-    try {
-      await api('DELETE', `/api/cloud/projects/${p.id}`);
-      closeCloudDrawer();
-      await refreshCloud();
-      toast('Project deleted');
-    } catch (err) { toast(err.message, 'err'); }
-  });
 
   document.getElementById('cloudNewProjectForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -3022,7 +1147,6 @@
       });
       closeCloudModals();
       await refreshCloud();
-      openCloudDrawer(project.id);
       toast(project.githubRepo
         ? `"${project.name}" created · ${(project.versions||[]).length} commit${(project.versions||[]).length===1?'':'s'} synced`
         : `"${project.name}" created`);
@@ -3034,50 +1158,9 @@
     }
   });
 
-  document.getElementById('cloudAddUrlBtn').addEventListener('click', () => openCloudModal('cloudAddLinkModal'));
 
-  document.getElementById('cloudAddLinkForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const p = cloud.projects.find(x => x.id === cloud.activeId);
-    if (!p) return;
-    try {
-      await api('POST', `/api/cloud/projects/${p.id}/versions`, {
-        type: 'url',
-        url: fd.get('url'),
-        name: fd.get('name') || '',
-        notes: fd.get('notes') || '',
-      });
-      closeCloudModals();
-      await refreshCloud();
-      toast('Link added');
-    } catch (err) { toast(err.message, 'err'); }
-  });
 
-  document.getElementById('cloudUploadBtn').addEventListener('click', () => {
-    const inp = document.getElementById('cloudUploadInput');
-    inp.value = '';
-    inp.click();
-  });
 
-  document.getElementById('cloudUploadInput').addEventListener('change', async () => {
-    const file = document.getElementById('cloudUploadInput').files[0];
-    if (!file) return;
-    const p = cloud.projects.find(x => x.id === cloud.activeId);
-    if (!p) return;
-    const name = prompt(`Label for "${file.name}":`, file.name) || file.name;
-    toast(`Uploading ${file.name}…`);
-    try {
-      const qs = new URLSearchParams({ filename: file.name, name }).toString();
-      const res = await fetch(`/api/cloud/projects/${p.id}/versions/upload?${qs}`, {
-        method: 'POST',
-        body: file,
-      });
-      if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
-      await refreshCloud();
-      toast('Upload complete');
-    } catch (err) { toast(err.message, 'err'); }
-  });
 
   // ═══════════════════════════════════════════════════════════════════════
   // PROJECT PAGE — full-page view replacing the cloud drawer.
@@ -3138,9 +1221,99 @@
     grid.querySelectorAll('[data-tile-vid]').forEach(el => {
       el.addEventListener('click', (e) => {
         if (e.target.closest('.ptile-open')) return;
-        openPreviewModal(el.dataset.tileVid);
+        if (e.target.closest('[data-tile-kebab]')) return;
+        openVersionView(p.id, el.dataset.tileVid);
       });
     });
+    grid.querySelectorAll('[data-tile-kebab]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openVersionMenu(btn, p.id, btn.dataset.tileKebab);
+      });
+    });
+  }
+
+  // ─── Per-version action menu (Copy link / Edit / Delete) ───
+  function openVersionMenu(anchor, projectId, versionId) {
+    closeVersionMenu();
+    const menu = document.createElement('div');
+    menu.id = 'vvVersionMenu';
+    menu.className = 'fixed z-[80] min-w-[160px] bg-white border border-ink-200 rounded-lg shadow-pop py-1';
+    menu.innerHTML = `
+      <button data-vm-action="copy" class="w-full text-left px-3 py-1.5 hover:bg-ink-50 text-ink-700 text-sm flex items-center gap-2"><i class="ti ti-link text-base text-ink-500"></i>Copy link</button>
+      <button data-vm-action="edit" class="w-full text-left px-3 py-1.5 hover:bg-ink-50 text-ink-700 text-sm flex items-center gap-2"><i class="ti ti-pencil text-base text-ink-500"></i>Edit</button>
+      <div class="my-1 h-px bg-ink-100"></div>
+      <button data-vm-action="delete" class="w-full text-left px-3 py-1.5 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><i class="ti ti-trash text-base"></i>Delete</button>
+    `;
+    document.body.appendChild(menu);
+    const r = anchor.getBoundingClientRect();
+    menu.style.visibility = 'hidden';
+    const mh = menu.offsetHeight, mw = menu.offsetWidth;
+    let top = r.bottom + 6, left = r.right - mw;
+    if (top + mh > window.innerHeight - 8) top = r.top - mh - 6;
+    if (left < 8) left = 8;
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+    menu.style.visibility = '';
+
+    menu.querySelectorAll('[data-vm-action]').forEach(b => {
+      b.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const action = b.dataset.vmAction;
+        closeVersionMenu();
+        if (action === 'copy') {
+          copyVersionLink(projectId, versionId);
+        } else if (action === 'edit') {
+          // Reuse the existing edit modal flow. It reads from preview.* / vv.*
+          preview.projectId = projectId;
+          preview.versionId = versionId;
+          openEditVersionModal();
+        } else if (action === 'delete') {
+          const p = cloud.projects.find(x => x.id === projectId);
+          const v = p && (p.versions || []).find(x => x.id === versionId);
+          if (!v) return;
+          if (!confirm(`Delete version "${v.name || v.label}"? This cannot be undone.`)) return;
+          try {
+            await api('DELETE', `/api/cloud/projects/${projectId}/versions/${versionId}`);
+            await refreshCloud();
+            if (cloud.activeId === projectId) renderProjectPage();
+            if (vv.projectId === projectId && vv.versionId === versionId) closeVersionView();
+            toast('Version deleted');
+          } catch (err) { toast(err.message, 'err'); }
+        }
+      });
+    });
+  }
+  function closeVersionMenu() {
+    const m = document.getElementById('vvVersionMenu');
+    if (m) m.remove();
+  }
+  document.addEventListener('click', (e) => {
+    const m = document.getElementById('vvVersionMenu');
+    if (!m) return;
+    if (!m.contains(e.target)) closeVersionMenu();
+  });
+  window.addEventListener('resize', closeVersionMenu);
+  window.addEventListener('scroll', closeVersionMenu, true);
+
+  function copyVersionLink(projectId, versionId) {
+    const url = `${location.origin}/#view=${projectId}/${versionId}`;
+    const fallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch {}
+      ta.remove();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(
+        () => toast('Link copied'),
+        () => { fallback(); toast('Link copied'); }
+      );
+    } else {
+      fallback();
+      toast('Link copied');
+    }
   }
 
   const TYPE_INFO = {
@@ -3215,7 +1388,12 @@
         <div class="ptile-frame" data-tile-vid="${v.id}">
           ${inner}
           <span class="ptile-badge">${escapeHtml(v.label)}</span>
-          ${openBtn}
+          <div class="ptile-actions">
+            ${openBtn}
+            <button class="ptile-kebab" data-tile-kebab="${v.id}" title="More options" onclick="event.stopPropagation()">
+              <i class="ti ti-dots-vertical text-base"></i>
+            </button>
+          </div>
         </div>
         <div class="ptile-label">${escapeHtml(v.name || v.label)}</div>
         <div class="ptile-sub"><i class="ti ti-${ti.icon}"></i>${escapeHtml(ti.label)}</div>
@@ -3256,25 +1434,24 @@
     } catch (err) { toast(err.message, 'err'); }
   });
 
-  // Hash routing — opens project on direct load or browser back/forward
-  window.addEventListener('popstate', () => {
-    const m = location.hash.match(/^#project=(.+)$/);
-    if (m && cloud.projects.find(x => x.id === m[1])) {
-      openProjectPage(m[1]);
-    } else {
-      closeProjectPage();
+  function applyHashRoute() {
+    const view = location.hash.match(/^#view=([^/]+)\/(.+)$/);
+    const proj = location.hash.match(/^#project=(.+)$/);
+    if (view) {
+      const pid = view[1], vid = view[2];
+      if (cloud.projects.find(x => x.id === pid)) {
+        openVersionView(pid, vid, { fromHash: true });
+        return;
+      }
+    } else if (proj && cloud.projects.find(x => x.id === proj[1])) {
+      closeVersionView({ silent: true });
+      openProjectPage(proj[1]);
+      return;
     }
-  });
-
-  // On initial cloud load, if URL has a project hash, open it
-  const origInitCloud = initCloud;
-  initCloud = async function() {
-    await origInitCloud.call(this);
-    const m = location.hash.match(/^#project=(.+)$/);
-    if (m && cloud.projects.find(x => x.id === m[1])) {
-      openProjectPage(m[1]);
-    }
-  };
+    closeVersionView({ silent: true });
+    closeProjectPage();
+  }
+  window.addEventListener('popstate', applyHashRoute);
 
   // ═══════════════════════════════════════════════════════════════════════
   // ADD VERSION MODAL — unified upload + link.
@@ -3454,208 +1631,6 @@
     }
   });
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PREVIEW MODAL — Mobbin-style large preview + details + comments.
-  // ═══════════════════════════════════════════════════════════════════════
-  const preview = { projectId: null, versionId: null };
-
-  function openPreviewModal(vid) {
-    const p = cloud.projects.find(x => x.id === cloud.activeId);
-    if (!p) return;
-    const v = (p.versions || []).find(x => x.id === vid);
-    if (!v) return;
-    preview.projectId = p.id;
-    preview.versionId = vid;
-    renderPreviewModal();
-    document.getElementById('previewModal').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closePreviewModal() {
-    document.getElementById('previewModal').classList.add('hidden');
-    // Stop any playing video to free resources.
-    const pv = document.getElementById('pmPreview');
-    pv.innerHTML = '';
-    preview.projectId = null;
-    preview.versionId = null;
-    if (document.getElementById('projectPage').classList.contains('hidden')) document.body.style.overflow = '';
-  }
-
-  function renderPreviewModal() {
-    const p = cloud.projects.find(x => x.id === preview.projectId);
-    const v = p && (p.versions || []).find(x => x.id === preview.versionId);
-    if (!p || !v) { closePreviewModal(); return; }
-
-    const badge = document.getElementById('pmBadge');
-    const kindLabel = v.type === 'commit' ? 'commit'
-                    : v.type === 'url' ? (v.urlKind || 'link')
-                    : v.fileKind || 'file';
-    badge.textContent = kindLabel;
-
-    document.getElementById('pmTitle').textContent = v.name || v.label;
-    document.getElementById('pmLabel').textContent = v.label;
-    document.getElementById('pmDetailLabel').textContent = v.label;
-    document.getElementById('pmDetailDesc').textContent = v.description || v.notes || '—';
-    document.getElementById('pmDetailUploadedBy').textContent = v.uploadedBy || '—';
-    document.getElementById('pmDetailCreated').textContent =
-      new Date(v.createdAt).toLocaleString();
-    const s = STATUS_STYLES[v.status] || STATUS_STYLES.draft;
-    document.getElementById('pmDetailStatus').innerHTML =
-      `<span class="inline-flex items-center gap-1 h-5 px-1.5 rounded ${s.classes} text-[10.5px] font-medium">${s.label}</span>`;
-
-    const urlRow = document.getElementById('pmDetailUrlRow');
-    const fileRow = document.getElementById('pmDetailFileRow');
-    const shaRow = document.getElementById('pmDetailShaRow');
-    urlRow.classList.add('hidden'); fileRow.classList.add('hidden'); shaRow.classList.add('hidden');
-
-    let openHref = '';
-    const pane = document.getElementById('pmPreview');
-    pane.innerHTML = '';
-
-    if (v.type === 'url' && v.url) {
-      openHref = v.url;
-      urlRow.classList.remove('hidden');
-      const a = document.getElementById('pmDetailUrl');
-      a.href = v.url; a.textContent = v.url;
-      pane.innerHTML = `<iframe src="${escapeHtml(v.url)}" class="w-full h-full" sandbox="allow-same-origin allow-scripts allow-popups allow-forms" referrerpolicy="no-referrer" style="border:0;background:#fff"></iframe>`;
-    } else if (v.type === 'file') {
-      const fileUrl = `/uploads/${encodeURIComponent(p.id)}/${encodeURIComponent(v.storedName)}`;
-      openHref = fileUrl;
-      fileRow.classList.remove('hidden');
-      document.getElementById('pmDetailFile').textContent = `${v.filename} · ${fmtBytes(v.size)}`;
-      if (v.fileKind === 'image') {
-        pane.innerHTML = `<img src="${fileUrl}" class="max-w-full max-h-full object-contain">`;
-      } else if (v.fileKind === 'video') {
-        pane.innerHTML = `<video src="${fileUrl}" controls autoplay class="max-w-full max-h-full"></video>`;
-      } else {
-        pane.innerHTML = `<div class="text-center p-8"><i class="ti ti-file text-6xl text-ink-400"></i><p class="mt-3 text-ink-600">${escapeHtml(v.filename)}</p><a href="${fileUrl}" download class="mt-3 inline-flex items-center gap-1.5 text-brand-600"><i class="ti ti-download"></i> Download</a></div>`;
-      }
-    } else if (v.type === 'commit') {
-      const m = v.meta || {};
-      openHref = m.url || '';
-      shaRow.classList.remove('hidden');
-      const a = document.getElementById('pmDetailSha');
-      a.href = m.url || '#'; a.textContent = m.shortSha || (m.sha || '').slice(0, 7);
-      pane.innerHTML = `
-        <div class="text-center px-8 py-12 max-w-md">
-          ${m.avatar ? `<img src="${escapeHtml(m.avatar)}" class="h-20 w-20 rounded-full mx-auto" alt="">` : `<div class="h-20 w-20 mx-auto rounded-full bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-git-commit text-3xl"></i></div>`}
-          <div class="mt-4 font-mono text-sm text-ink-500">${escapeHtml(m.shortSha || (m.sha||'').slice(0,7))}</div>
-          <div class="mt-3 text-lg font-semibold text-ink-900">${escapeHtml(m.message || '')}</div>
-          <div class="mt-2 text-sm text-ink-500">by ${escapeHtml(m.author || 'unknown')}</div>
-          ${m.url ? `<a href="${escapeHtml(m.url)}" target="_blank" rel="noopener" class="mt-4 inline-flex items-center gap-1.5 text-brand-600 hover:underline"><i class="ti ti-brand-github"></i> View on GitHub</a>` : ''}
-        </div>`;
-    }
-
-    const openLink = document.getElementById('pmOpenNew');
-    if (openHref) { openLink.href = openHref; openLink.classList.remove('hidden'); }
-    else openLink.classList.add('hidden');
-
-    renderComments();
-  }
-
-  function renderComments() {
-    const p = cloud.projects.find(x => x.id === preview.projectId);
-    const v = p && (p.versions || []).find(x => x.id === preview.versionId);
-    if (!p || !v) return;
-    const list = document.getElementById('pmComments');
-    const comments = (v.comments || []).slice().sort((a, b) => a.createdAt - b.createdAt);
-    document.getElementById('pmCommentCount').textContent = comments.length ? `(${comments.length})` : '';
-    if (comments.length === 0) {
-      list.innerHTML = `<div class="text-[12.5px] text-ink-400 italic py-2">No comments yet — start the conversation.</div>`;
-      return;
-    }
-    const myName = localStorage.getItem('zuper.uploaderName') || '';
-    list.innerHTML = comments.map(c => {
-      const initials = (c.author || '?').split(/\s+/).map(s => s[0]).join('').slice(0, 2).toUpperCase();
-      const mine = c.author === myName;
-      return `
-        <div class="flex gap-2 group">
-          <div class="h-7 w-7 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white text-[10px] font-semibold flex items-center justify-center shrink-0">${escapeHtml(initials)}</div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="text-[12px] font-semibold text-ink-800 truncate">${escapeHtml(c.author)}</span>
-              <span class="text-[11px] text-ink-400">${fmtRelative(c.createdAt)}</span>
-              ${mine ? `<button data-del-comment="${c.id}" class="ml-auto opacity-0 group-hover:opacity-100 text-ink-400 hover:text-red-600 text-[11px]" title="Delete">Delete</button>` : ''}
-            </div>
-            <div class="text-[13px] text-ink-800 whitespace-pre-wrap break-words">${escapeHtml(c.text)}</div>
-          </div>
-        </div>`;
-    }).join('');
-    list.querySelectorAll('[data-del-comment]').forEach(b => {
-      b.addEventListener('click', async () => {
-        const cid = b.dataset.delComment;
-        try {
-          await api('DELETE', `/api/cloud/projects/${preview.projectId}/versions/${preview.versionId}/comments/${cid}`);
-          await refreshCloud();
-          renderComments();
-        } catch (err) { toast(err.message, 'err'); }
-      });
-    });
-  }
-
-  document.getElementById('pmClose').addEventListener('click', closePreviewModal);
-  document.getElementById('previewBackdrop').addEventListener('click', closePreviewModal);
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !document.getElementById('previewModal').classList.contains('hidden')) {
-      closePreviewModal();
-    }
-  });
-
-  document.getElementById('pmCommentForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const ta = document.getElementById('pmCommentText');
-    const text = ta.value.trim();
-    if (!text) return;
-    let author = localStorage.getItem('zuper.uploaderName');
-    if (!author) {
-      author = prompt('Your name (saved locally so we remember next time):', '');
-      if (!author) return;
-      localStorage.setItem('zuper.uploaderName', author);
-    }
-    try {
-      await api('POST', `/api/cloud/projects/${preview.projectId}/versions/${preview.versionId}/comments`, { author, text });
-      ta.value = '';
-      await refreshCloud();
-      renderComments();
-    } catch (err) { toast(err.message, 'err'); }
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // PREVIEW MODAL KEBAB + EDIT VERSION
-  // ═══════════════════════════════════════════════════════════════════════
-  const pmKebab = document.getElementById('pmKebab');
-  const pmKebabMenu = document.getElementById('pmKebabMenu');
-  pmKebab.addEventListener('click', (e) => {
-    e.stopPropagation();
-    pmKebabMenu.classList.toggle('hidden');
-  });
-  document.addEventListener('click', (e) => {
-    if (pmKebabMenu.classList.contains('hidden')) return;
-    if (!pmKebabMenu.contains(e.target) && e.target !== pmKebab) {
-      pmKebabMenu.classList.add('hidden');
-    }
-  });
-
-  pmKebabMenu.querySelectorAll('[data-pm-action]').forEach(b => {
-    b.addEventListener('click', async () => {
-      pmKebabMenu.classList.add('hidden');
-      const action = b.dataset.pmAction;
-      if (action === 'edit') {
-        openEditVersionModal();
-      } else if (action === 'delete') {
-        if (!confirm('Delete this version? This cannot be undone.')) return;
-        try {
-          await api('DELETE', `/api/cloud/projects/${preview.projectId}/versions/${preview.versionId}`);
-          const pid = preview.projectId;
-          closePreviewModal();
-          await refreshCloud();
-          if (cloud.activeId === pid) renderProjectPage();
-          toast('Version deleted');
-        } catch (err) { toast(err.message, 'err'); }
-      }
-    });
-  });
-
   function openEditVersionModal() {
     const p = cloud.projects.find(x => x.id === preview.projectId);
     const v = p && (p.versions || []).find(x => x.id === preview.versionId);
@@ -3682,7 +1657,7 @@
 
   function closeEditVersionModal() {
     document.getElementById('editVersionModal').classList.add('hidden');
-    if (document.getElementById('previewModal').classList.contains('hidden') &&
+    if (document.getElementById('versionView').classList.contains('hidden') &&
         document.getElementById('projectPage').classList.contains('hidden')) {
       document.body.style.overflow = '';
     }
@@ -3706,11 +1681,616 @@
       body.url = urlVal;
     }
     try {
-      await api('PATCH', `/api/cloud/projects/${preview.projectId}/versions/${preview.versionId}`, body);
+      // Route to either preview-modal context or version-view context.
+      const ctx = vv.versionId ? vv : preview;
+      await api('PATCH', `/api/cloud/projects/${ctx.projectId}/versions/${ctx.versionId}`, body);
       closeEditVersionModal();
       await refreshCloud();
-      renderPreviewModal();
+      if (vv.versionId) renderVersionView();
+      else if (cloud.activeId) renderProjectPage();
       toast('Version updated');
+    } catch (err) { toast(err.message, 'err'); }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // VERSION VIEW — full-screen page with Details / Comments tabs + pin
+  // ═══════════════════════════════════════════════════════════════════════
+  const vv = {
+    projectId: null,
+    versionId: null,
+    tab: 'details',
+    pinMode: false,
+    pendingPin: null,   // { x, y, t? } before submit
+  };
+
+  function openVersionView(projectId, versionId, { fromHash = false } = {}) {
+    const p = cloud.projects.find(x => x.id === projectId);
+    const v = p && (p.versions || []).find(x => x.id === versionId);
+    if (!p || !v) return;
+    vv.projectId = projectId;
+    vv.versionId = versionId;
+    vv.tab = 'details';
+    vv.pendingPin = null;
+    setVvTab('details');
+    document.getElementById('versionView').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    if (!fromHash) {
+      const hash = `#view=${projectId}/${versionId}`;
+      if (location.hash !== hash) history.pushState({ vv: true }, '', hash);
+    }
+    renderVersionView();
+  }
+
+  function closeVersionView({ silent = false } = {}) {
+    const view = document.getElementById('versionView');
+    if (view.classList.contains('hidden')) return;
+    view.classList.add('hidden');
+    cleanupPinMode();
+    document.getElementById('vvPreview').innerHTML = '';
+    document.getElementById('vvPinLayer').innerHTML = '';
+    const prev = { pid: vv.projectId };
+    vv.projectId = null;
+    vv.versionId = null;
+    if (!silent && location.hash.startsWith('#view=')) {
+      const next = prev.pid ? `#project=${prev.pid}` : '';
+      history.pushState({}, '', next ? location.pathname + location.search + next : location.pathname + location.search);
+    }
+    // Restore scroll lock state based on what's still open
+    if (document.getElementById('projectPage').classList.contains('hidden')) {
+      document.body.style.overflow = '';
+    }
+  }
+
+  function renderVersionView() {
+    const p = cloud.projects.find(x => x.id === vv.projectId);
+    const v = p && (p.versions || []).find(x => x.id === vv.versionId);
+    if (!p || !v) { closeVersionView(); return; }
+
+    document.getElementById('vvProjectName').textContent = p.name;
+    document.getElementById('vvTitle').textContent = v.name || v.label;
+    document.getElementById('vvLabel').textContent = v.label;
+    document.getElementById('vvCommentBadge').textContent = (v.comments || []).length ? `(${v.comments.length})` : '';
+
+    // Details
+    document.getElementById('vvDetailTitle').textContent = v.name || '—';
+    document.getElementById('vvDetailLabel').textContent = v.label;
+    document.getElementById('vvDetailDesc').textContent = v.description || v.notes || '—';
+    document.getElementById('vvDetailUploadedBy').textContent = v.uploadedBy || '—';
+    document.getElementById('vvDetailCreated').textContent = new Date(v.createdAt).toLocaleString();
+    const ti = typeInfo(v);
+    document.getElementById('vvDetailType').innerHTML = `<i class="ti ti-${ti.icon} text-sm"></i>${escapeHtml(ti.label)}`;
+    const s = STATUS_STYLES[v.status] || STATUS_STYLES.draft;
+    document.getElementById('vvDetailStatus').innerHTML =
+      `<span class="inline-flex items-center gap-1 h-5 px-1.5 rounded ${s.classes} text-[10.5px] font-medium">${s.label}</span>`;
+    const urlRow = document.getElementById('vvDetailUrlRow');
+    const fileRow = document.getElementById('vvDetailFileRow');
+    const shaRow  = document.getElementById('vvDetailShaRow');
+    urlRow.classList.add('hidden'); fileRow.classList.add('hidden'); shaRow.classList.add('hidden');
+
+    // Preview
+    const pane = document.getElementById('vvPreview');
+    pane.innerHTML = '';
+    let openHref = '';
+
+    if (v.type === 'url' && v.url) {
+      openHref = v.url;
+      urlRow.classList.remove('hidden');
+      const a = document.getElementById('vvDetailUrl');
+      a.href = v.url; a.textContent = v.url;
+      // Default to a DIRECT iframe — always loads correctly for any URL.
+      // We swap to a proxied iframe (same-origin) on demand when pin/flash is
+      // requested, since inspect mode needs DOM access.
+      pane.innerHTML = `<iframe id="vvPreviewMedia" data-mode="direct" src="${escapeHtml(v.url)}" referrerpolicy="no-referrer" style="border:0;background:#fff;width:100%;height:100%;display:block"></iframe>`;
+      pane.style.width = '100%';
+      pane.style.height = '100%';
+      vv.previewMode = 'direct';
+      vv.proxyReady = false;
+    } else if (v.type === 'file') {
+      const fileUrl = `/uploads/${encodeURIComponent(p.id)}/${encodeURIComponent(v.storedName)}`;
+      openHref = fileUrl;
+      fileRow.classList.remove('hidden');
+      document.getElementById('vvDetailFile').textContent = `${v.filename} · ${fmtBytes(v.size)}`;
+      if (v.fileKind === 'image') {
+        pane.innerHTML = `<img id="vvPreviewMedia" src="${fileUrl}" style="max-width:100%;max-height:100%;display:block">`;
+      } else if (v.fileKind === 'video') {
+        pane.innerHTML = `<video id="vvPreviewMedia" src="${fileUrl}" controls style="max-width:100%;max-height:100%;display:block"></video>`;
+      } else {
+        pane.innerHTML = `<div class="text-center p-8"><i class="ti ti-file text-6xl text-ink-400"></i><p class="mt-3 text-ink-600">${escapeHtml(v.filename)}</p><a href="${fileUrl}" download class="mt-3 inline-flex items-center gap-1.5 text-brand-600"><i class="ti ti-download"></i> Download</a></div>`;
+      }
+      pane.style.width = '';
+      pane.style.height = '';
+    } else if (v.type === 'commit') {
+      const m = v.meta || {};
+      openHref = m.url || '';
+      shaRow.classList.remove('hidden');
+      const a = document.getElementById('vvDetailSha');
+      a.href = m.url || '#'; a.textContent = m.shortSha || (m.sha || '').slice(0, 7);
+      pane.innerHTML = `
+        <div class="text-center px-8 py-12 max-w-md">
+          ${m.avatar ? `<img src="${escapeHtml(m.avatar)}" class="h-20 w-20 rounded-full mx-auto" alt="">` : `<div class="h-20 w-20 mx-auto rounded-full bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-git-commit text-3xl"></i></div>`}
+          <div class="mt-4 font-mono text-sm text-ink-500">${escapeHtml(m.shortSha || (m.sha||'').slice(0,7))}</div>
+          <div class="mt-3 text-lg font-semibold text-ink-900">${escapeHtml(m.message || '')}</div>
+          <div class="mt-2 text-sm text-ink-500">by ${escapeHtml(m.author || 'unknown')}</div>
+          ${m.url ? `<a href="${escapeHtml(m.url)}" target="_blank" rel="noopener" class="mt-4 inline-flex items-center gap-1.5 text-brand-600 hover:underline"><i class="ti ti-brand-github"></i> View on GitHub</a>` : ''}
+        </div>`;
+      pane.style.width = '';
+      pane.style.height = '';
+    }
+    const openLink = document.getElementById('vvOpenNew');
+    if (openHref) {
+      openLink.href = openHref;
+      openLink.classList.remove('hidden');
+      openLink.classList.add('inline-flex');
+    } else {
+      openLink.classList.add('hidden');
+      openLink.classList.remove('inline-flex');
+    }
+
+    renderVvComments();
+    renderVvPinMarkers();
+  }
+
+  function setVvTab(tab) {
+    vv.tab = tab;
+    document.querySelectorAll('[data-vv-tab]').forEach(b => {
+      const active = b.dataset.vvTab === tab;
+      b.classList.toggle('active', active);
+      b.classList.toggle('text-ink-700', active);
+      b.classList.toggle('text-ink-500', !active);
+      b.classList.toggle('bg-white', active);
+      b.classList.toggle('shadow-sm', active);
+    });
+    document.querySelectorAll('[data-vv-pane]').forEach(el => {
+      el.classList.toggle('hidden', el.dataset.vvPane !== tab);
+    });
+    renderVvPinMarkers();
+  }
+
+  document.querySelectorAll('[data-vv-tab]').forEach(b => b.addEventListener('click', () => setVvTab(b.dataset.vvTab)));
+  document.getElementById('vvBack').addEventListener('click', () => history.back());
+
+  // ─── Right pane collapse (Claude-style) ───
+  const VV_PANE_KEY = 'zuper.vv.paneCollapsed';
+  function setVvPaneCollapsed(collapsed, { persist = true } = {}) {
+    const view = document.getElementById('versionView');
+    view.classList.toggle('pane-collapsed', collapsed);
+    if (persist) localStorage.setItem(VV_PANE_KEY, collapsed ? '1' : '0');
+  }
+  // Restore on load.
+  setVvPaneCollapsed(localStorage.getItem(VV_PANE_KEY) === '1', { persist: false });
+  document.getElementById('vvHidePane').addEventListener('click', () => setVvPaneCollapsed(true));
+  document.getElementById('vvShowPane').addEventListener('click', () => setVvPaneCollapsed(false));
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
+      const view = document.getElementById('versionView');
+      if (view.classList.contains('hidden')) return;
+      e.preventDefault();
+      setVvPaneCollapsed(!view.classList.contains('pane-collapsed'));
+    }
+  });
+
+  // Kebab
+  const vvKebab = document.getElementById('vvKebab');
+  const vvKebabMenu = document.getElementById('vvKebabMenu');
+  vvKebab.addEventListener('click', (e) => { e.stopPropagation(); vvKebabMenu.classList.toggle('hidden'); });
+  document.addEventListener('click', (e) => {
+    if (vvKebabMenu.classList.contains('hidden')) return;
+    if (!vvKebabMenu.contains(e.target) && e.target !== vvKebab) vvKebabMenu.classList.add('hidden');
+  });
+  vvKebabMenu.querySelectorAll('[data-vv-action]').forEach(b => {
+    b.addEventListener('click', async () => {
+      vvKebabMenu.classList.add('hidden');
+      if (b.dataset.vvAction === 'copy') {
+        copyVersionLink(vv.projectId, vv.versionId);
+      } else if (b.dataset.vvAction === 'edit') {
+        // Hijack edit modal to operate on this version
+        preview.projectId = vv.projectId;
+        preview.versionId = vv.versionId;
+        openEditVersionModal();
+      } else if (b.dataset.vvAction === 'delete') {
+        if (!confirm('Delete this version?')) return;
+        try {
+          await api('DELETE', `/api/cloud/projects/${vv.projectId}/versions/${vv.versionId}`);
+          const pid = vv.projectId;
+          closeVersionView();
+          await refreshCloud();
+          if (cloud.activeId === pid) renderProjectPage();
+          toast('Version deleted');
+        } catch (err) { toast(err.message, 'err'); }
+      }
+    });
+  });
+
+  // ─── Pin mode ───
+  function isUrlVersion() {
+    const p = cloud.projects.find(x => x.id === vv.projectId);
+    const v = p && (p.versions || []).find(x => x.id === vv.versionId);
+    return v && v.type === 'url';
+  }
+
+  // Swap the URL iframe into proxy mode (same-origin) so the inspector script
+  // can listen for postMessage. Resolves once the iframe sends `zuper:ready`,
+  // or rejects after timeout. Idempotent — no-op if already in proxy mode.
+  function ensureProxyMode() {
+    return new Promise((resolve) => {
+      if (!isUrlVersion()) return resolve(false);
+      const iframe = document.getElementById('vvPreviewMedia');
+      if (!iframe || iframe.tagName !== 'IFRAME') return resolve(false);
+      if (vv.previewMode === 'proxy' && vv.proxyReady) return resolve(true);
+
+      const p = cloud.projects.find(x => x.id === vv.projectId);
+      const v = p && (p.versions || []).find(x => x.id === vv.versionId);
+      if (!v || !v.url) return resolve(false);
+
+      vv.proxyReady = false;
+      vv.previewMode = 'proxy';
+
+      const onReady = (e) => {
+        if (e.source !== iframe.contentWindow) return;
+        if (e.data && e.data.type === 'zuper:ready') {
+          vv.proxyReady = true;
+          window.removeEventListener('message', onReady);
+          clearTimeout(timer);
+          resolve(true);
+        }
+      };
+      window.addEventListener('message', onReady);
+      const timer = setTimeout(() => {
+        window.removeEventListener('message', onReady);
+        if (!vv.proxyReady) {
+          toast('Inspector unavailable for this site — using coordinate pin', 'err');
+          resolve(false);
+        }
+      }, 8000);
+
+      iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox');
+      iframe.dataset.mode = 'proxy';
+      iframe.src = `/proxy?url=${encodeURIComponent(v.url)}`;
+    });
+  }
+
+  async function enterPinMode() {
+    if (!vv.versionId) return;
+    vv.pinMode = true;
+    const overlay = document.getElementById('vvPinOverlay');
+    overlay.classList.remove('hidden');
+
+    if (isUrlVersion()) {
+      // First swap to proxy mode (iframe reloads via /proxy). Show a loading hint.
+      overlay.style.pointerEvents = 'none';
+      overlay.style.background = 'rgba(15,23,42,0.04)';
+      overlay.querySelector('div').innerHTML =
+        '<i class="ti ti-loader-2 text-base" style="animation: spin 1s linear infinite"></i> Loading inspector…';
+      const ok = await ensureProxyMode();
+      if (!vv.pinMode) return; // user cancelled
+      if (!ok) {
+        cleanupPinMode();
+        return;
+      }
+      overlay.querySelector('div').innerHTML =
+        '<i class="ti ti-crosshair text-base"></i> Hover and click an element in the preview · <span class="text-ink-300">Esc to cancel</span>';
+      postToIframe({ type: 'zuper:start' });
+    } else {
+      // Coordinate-pick fallback for image/video/commit.
+      overlay.style.pointerEvents = '';
+      overlay.style.background = 'rgba(15,23,42,0.04)';
+      overlay.querySelector('div').innerHTML =
+        '<i class="ti ti-crosshair text-base"></i> Click on the preview to pin a comment · <span class="text-ink-300">Esc to cancel</span>';
+    }
+  }
+
+  function cleanupPinMode() {
+    if (vv.pinMode && isUrlVersion()) postToIframe({ type: 'zuper:stop' });
+    vv.pinMode = false;
+    const overlay = document.getElementById('vvPinOverlay');
+    overlay.classList.add('hidden');
+    overlay.style.pointerEvents = '';
+    overlay.style.background = 'rgba(15,23,42,0.04)';
+  }
+
+  function postToIframe(msg) {
+    const iframe = document.getElementById('vvPreviewMedia');
+    if (iframe && iframe.tagName === 'IFRAME' && iframe.contentWindow) {
+      try { iframe.contentWindow.postMessage(msg, '*'); } catch {}
+    }
+  }
+
+  document.getElementById('vvPinBtn').addEventListener('click', enterPinMode);
+
+  document.getElementById('vvPinOverlay').addEventListener('click', (e) => {
+    if (!vv.pinMode) return;
+    // Only the coordinate fallback handles clicks here; URL flow goes through the iframe.
+    if (isUrlVersion()) return;
+    const overlay = e.currentTarget;
+    const rect = overlay.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    const pin = { x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) };
+    const media = document.getElementById('vvPreviewMedia');
+    if (media && media.tagName === 'VIDEO') pin.t = Math.round(media.currentTime * 10) / 10;
+    vv.pendingPin = pin;
+    cleanupPinMode();
+    showPendingPinChip();
+    if (vv.tab !== 'comments') setVvTab('comments');
+    setTimeout(() => document.getElementById('vvCommentText').focus(), 50);
+  });
+
+  // Receive messages from the proxied iframe (element picked / cancelled / not-found).
+  window.addEventListener('message', (e) => {
+    const d = e.data;
+    if (!d || typeof d !== 'object') return;
+    if (d.type === 'zuper:picked') {
+      vv.pendingPin = {
+        x: d.x, y: d.y,
+        selector: d.selector,
+        label: d.describe || '',
+      };
+      cleanupPinMode();
+      showPendingPinChip();
+      if (vv.tab !== 'comments') setVvTab('comments');
+      setTimeout(() => document.getElementById('vvCommentText').focus(), 50);
+    } else if (d.type === 'zuper:cancelled') {
+      cleanupPinMode();
+    } else if (d.type === 'zuper:not-found') {
+      toast('Element no longer in the page — its position may have shifted', 'err');
+    } else if (d.type === 'zuper:not-visible') {
+      toast('Element is hidden in the current state', 'err');
+    }
+  });
+
+  function showPendingPinChip() {
+    const wrap = document.getElementById('vvPinChipWrap');
+    const label = document.getElementById('vvPinChipLabel');
+    if (!vv.pendingPin) { wrap.classList.add('hidden'); return; }
+    label.textContent = pinLabel(vv.pendingPin);
+    wrap.classList.remove('hidden');
+  }
+  document.getElementById('vvPinChipClear').addEventListener('click', () => {
+    vv.pendingPin = null;
+    showPendingPinChip();
+  });
+
+  function pinLabel(pin) {
+    if (!pin) return '';
+    if (pin.label) return pin.label;
+    const xpct = Math.round((pin.x || 0) * 100), ypct = Math.round((pin.y || 0) * 100);
+    if (typeof pin.t === 'number') {
+      const t = pin.t;
+      const mm = Math.floor(t / 60);
+      const ss = String(Math.floor(t % 60)).padStart(2, '0');
+      return `${mm}:${ss} · ${xpct}%, ${ypct}%`;
+    }
+    return `${xpct}%, ${ypct}%`;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (vv.pinMode) { cleanupPinMode(); return; }
+      if (!document.getElementById('versionView').classList.contains('hidden')) {
+        // Close on Esc only if no overlay/modal is on top.
+        const modalsOpen = ['addVersionModal','editVersionModal'].some(id => !document.getElementById(id).classList.contains('hidden'));
+        if (!modalsOpen) history.back();
+      }
+    }
+  });
+
+  function renderVvComments() {
+    const p = cloud.projects.find(x => x.id === vv.projectId);
+    const v = p && (p.versions || []).find(x => x.id === vv.versionId);
+    if (!v) return;
+    const list = document.getElementById('vvComments');
+    const comments = (v.comments || []).slice().sort((a, b) => a.createdAt - b.createdAt);
+    if (comments.length === 0) {
+      list.innerHTML = `<div class="text-[12.5px] text-ink-400 italic py-2 text-center">No comments yet. Click <b>Pin to spot</b> to tag a comment to a specific area.</div>`;
+      return;
+    }
+    const myName = localStorage.getItem('zuper.uploaderName') || '';
+    list.innerHTML = comments.map(c => {
+      const initials = (c.author || '?').split(/\s+/).map(s => s[0]).join('').slice(0, 2).toUpperCase();
+      const mine = c.author === myName;
+      const pinChip = c.pin
+        ? `<button data-vv-pin='${escapeHtml(JSON.stringify(c.pin))}' class="inline-flex items-center gap-1 h-5 px-1.5 rounded bg-brand-50 text-brand-700 text-[10.5px] font-medium border border-brand-200 hover:bg-brand-100"><i class="ti ti-map-pin" style="font-size:11px"></i>${escapeHtml(pinLabel(c.pin))}</button>`
+        : '';
+      const isEditing = vv.editingCommentId === c.id;
+      const bodyHtml = isEditing
+        ? `
+          <div class="mt-1">
+            <textarea data-vv-edit-text="${c.id}" rows="2" maxlength="800" class="w-full px-2 py-1.5 bg-white border border-ink-200 rounded-lg text-[13px] text-ink-800 input-focus resize-none">${escapeHtml(c.text)}</textarea>
+            <div class="mt-1.5 flex items-center gap-1.5">
+              <button data-vv-edit-save="${c.id}" class="h-7 px-2.5 rounded-md bg-brand-500 hover:bg-brand-600 text-white text-[12px] font-medium">Save</button>
+              <button data-vv-edit-cancel class="h-7 px-2.5 rounded-md hover:bg-ink-100 text-ink-700 text-[12px]">Cancel</button>
+            </div>
+          </div>`
+        : `<div class="text-[13px] text-ink-800 whitespace-pre-wrap break-words">${escapeHtml(c.text)}${c.editedAt ? ' <span class="text-[10.5px] text-ink-400">(edited)</span>' : ''}</div>`;
+      return `
+        <div class="flex gap-2 group">
+          <div class="h-7 w-7 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white text-[10px] font-semibold flex items-center justify-center shrink-0">${escapeHtml(initials)}</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-[12px] font-semibold text-ink-800 truncate">${escapeHtml(c.author)}</span>
+              ${pinChip}
+              <span class="text-[11px] text-ink-400">${fmtRelative(c.createdAt)}</span>
+              ${mine && !isEditing ? `<button data-vv-c-kebab="${c.id}" class="ml-auto opacity-0 group-hover:opacity-100 focus:opacity-100 h-6 w-6 rounded hover:bg-ink-100 text-ink-500 hover:text-ink-700 flex items-center justify-center" title="More"><i class="ti ti-dots-vertical text-base"></i></button>` : ''}
+            </div>
+            ${bodyHtml}
+          </div>
+        </div>`;
+    }).join('');
+    list.querySelectorAll('[data-vv-pin]').forEach(b => {
+      b.addEventListener('click', () => {
+        try { flashPin(JSON.parse(b.dataset.vvPin)); } catch {}
+      });
+    });
+    list.querySelectorAll('[data-vv-c-kebab]').forEach(b => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openCommentMenu(b, b.dataset.vvCKebab);
+      });
+    });
+    list.querySelectorAll('[data-vv-edit-save]').forEach(b => {
+      b.addEventListener('click', async () => {
+        const cid = b.dataset.vvEditSave;
+        const ta = list.querySelector(`[data-vv-edit-text="${cid}"]`);
+        const text = (ta && ta.value || '').trim();
+        if (!text) { toast('Comment cannot be empty', 'err'); return; }
+        try {
+          await api('PATCH', `/api/cloud/projects/${vv.projectId}/versions/${vv.versionId}/comments/${cid}`, { text });
+          vv.editingCommentId = null;
+          await refreshCloud();
+          renderVvComments();
+          toast('Comment updated');
+        } catch (err) { toast(err.message, 'err'); }
+      });
+    });
+    list.querySelectorAll('[data-vv-edit-cancel]').forEach(b => {
+      b.addEventListener('click', () => {
+        vv.editingCommentId = null;
+        renderVvComments();
+      });
+    });
+    // Auto-focus the textarea when entering edit mode
+    if (vv.editingCommentId) {
+      const ta = list.querySelector(`[data-vv-edit-text="${vv.editingCommentId}"]`);
+      if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+    }
+  }
+
+  // ─── Per-comment kebab dropdown ───
+  function openCommentMenu(anchor, cid) {
+    closeCommentMenu();
+    const menu = document.createElement('div');
+    menu.id = 'vvCommentMenu';
+    menu.className = 'fixed z-[80] min-w-[140px] bg-white border border-ink-200 rounded-lg shadow-pop py-1';
+    menu.innerHTML = `
+      <button data-cm-action="edit" class="w-full text-left px-3 py-1.5 hover:bg-ink-50 text-ink-700 text-sm flex items-center gap-2"><i class="ti ti-pencil text-base text-ink-500"></i>Edit</button>
+      <div class="my-1 h-px bg-ink-100"></div>
+      <button data-cm-action="delete" class="w-full text-left px-3 py-1.5 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><i class="ti ti-trash text-base"></i>Delete</button>
+    `;
+    document.body.appendChild(menu);
+    // Position below+right-aligned to the anchor
+    const r = anchor.getBoundingClientRect();
+    menu.style.visibility = 'hidden';
+    const mh = menu.offsetHeight, mw = menu.offsetWidth;
+    let top = r.bottom + 4, left = r.right - mw;
+    if (top + mh > window.innerHeight - 8) top = r.top - mh - 4;
+    if (left < 8) left = 8;
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+    menu.style.visibility = '';
+
+    menu.querySelectorAll('[data-cm-action]').forEach(b => {
+      b.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const action = b.dataset.cmAction;
+        closeCommentMenu();
+        if (action === 'edit') {
+          vv.editingCommentId = cid;
+          renderVvComments();
+        } else if (action === 'delete') {
+          if (!confirm('Delete this comment?')) return;
+          try {
+            await api('DELETE', `/api/cloud/projects/${vv.projectId}/versions/${vv.versionId}/comments/${cid}`);
+            await refreshCloud();
+            renderVvComments();
+            renderVvPinMarkers();
+            toast('Comment deleted');
+          } catch (err) { toast(err.message, 'err'); }
+        }
+      });
+    });
+  }
+  function closeCommentMenu() {
+    const m = document.getElementById('vvCommentMenu');
+    if (m) m.remove();
+  }
+  document.addEventListener('click', (e) => {
+    const m = document.getElementById('vvCommentMenu');
+    if (!m) return;
+    if (!m.contains(e.target)) closeCommentMenu();
+  });
+  window.addEventListener('resize', closeCommentMenu);
+  window.addEventListener('scroll', closeCommentMenu, true);
+
+  // Show small pin markers for all comments (clickable too).
+  // For URL versions the iframe scrolls independently, so parent-side dots are
+  // misleading; skip them and rely on comment-chip clicks to flash real elements.
+  function renderVvPinMarkers() {
+    const layer = document.getElementById('vvPinLayer');
+    layer.innerHTML = '';
+    if (vv.tab !== 'comments') return;
+    if (isUrlVersion()) return;
+    const p = cloud.projects.find(x => x.id === vv.projectId);
+    const v = p && (p.versions || []).find(x => x.id === vv.versionId);
+    if (!v) return;
+    (v.comments || []).forEach((c, i) => {
+      if (!c.pin) return;
+      const dot = document.createElement('div');
+      dot.className = 'vv-pin-marker';
+      dot.style.left = ((c.pin.x || 0) * 100) + '%';
+      dot.style.top  = ((c.pin.y || 0) * 100) + '%';
+      dot.textContent = i + 1;
+      dot.title = c.text.slice(0, 80);
+      dot.addEventListener('click', () => flashPin(c.pin));
+      layer.appendChild(dot);
+    });
+  }
+
+  async function flashPin(pin) {
+    if (!pin) return;
+    // URL versions with selector: route via iframe inspector. Swap to proxy if needed.
+    if (pin.selector && isUrlVersion()) {
+      if (vv.previewMode !== 'proxy' || !vv.proxyReady) {
+        toast('Loading inspector to highlight…');
+        const ok = await ensureProxyMode();
+        if (!ok) {
+          // Proxy failed; fall through to coordinate flash below.
+        } else {
+          // Tiny delay to let the iframe finish layout before flashing.
+          setTimeout(() => postToIframe({ type: 'zuper:flash', selector: pin.selector }), 120);
+          return;
+        }
+      } else {
+        postToIframe({ type: 'zuper:flash', selector: pin.selector });
+        return;
+      }
+    }
+    // Video: seek to timestamp if present.
+    const media = document.getElementById('vvPreviewMedia');
+    if (typeof pin.t === 'number' && media && media.tagName === 'VIDEO') {
+      try { media.currentTime = pin.t; media.pause(); } catch {}
+    }
+    // Fallback: coordinate-based flash on top of the preview wrap.
+    const wrap = document.getElementById('vvPreviewWrap');
+    const el = document.createElement('div');
+    el.className = 'vv-flash';
+    el.style.left = ((pin.x || 0) * 100) + '%';
+    el.style.top = ((pin.y || 0) * 100) + '%';
+    wrap.appendChild(el);
+    setTimeout(() => el.remove(), 1200);
+  }
+
+  document.getElementById('vvCommentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const ta = document.getElementById('vvCommentText');
+    const text = ta.value.trim();
+    if (!text) return;
+    let author = localStorage.getItem('zuper.uploaderName');
+    if (!author) {
+      author = prompt('Your name (saved locally so we remember next time):', '');
+      if (!author) return;
+      localStorage.setItem('zuper.uploaderName', author);
+    }
+    try {
+      const body = { author, text };
+      if (vv.pendingPin) body.pin = vv.pendingPin;
+      await api('POST', `/api/cloud/projects/${vv.projectId}/versions/${vv.versionId}/comments`, body);
+      ta.value = '';
+      vv.pendingPin = null;
+      showPendingPinChip();
+      await refreshCloud();
+      renderVersionView();
+      // Re-focus comments tab if it wasn't active
+      if (vv.tab !== 'comments') setVvTab('comments');
     } catch (err) { toast(err.message, 'err'); }
   });
 

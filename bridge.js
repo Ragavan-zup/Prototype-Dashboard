@@ -392,6 +392,241 @@ function readRawBody(req, maxBytes = 500 * 1024 * 1024) {
   });
 }
 
+// ────────────────────────── proxy + inspector ──────────────────────────
+// Serve external pages through our origin so the dashboard's iframe can run
+// element-inspection (hover outline, click to pick, flash to highlight) against
+// them. Without this, cross-origin iframes block any DOM access.
+
+function escapeBasic(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// Script injected into proxied pages. Listens for postMessage from the
+// dashboard parent and either:
+//   * starts inspect mode (hover outline + tooltip; click picks an element)
+//   * flashes an element matching a selector
+// Sends back a `zuper:picked` message with the selector + rect + element info.
+const INSPECTOR_SCRIPT = String.raw`
+(function(){
+  if (window.__zuperInspector) return; window.__zuperInspector = true;
+  var active=false, overlay=null, tip=null, lastEl=null;
+
+  function ensureUi(){
+    if (overlay) return;
+    overlay = document.createElement('div');
+    overlay.id = '__zuper_overlay';
+    overlay.style.cssText = 'position:fixed;border:2px solid #fd5000;background:rgba(253,80,0,0.16);pointer-events:none;z-index:2147483646;border-radius:3px;transition:all 70ms ease;display:none;box-sizing:border-box;';
+    document.documentElement.appendChild(overlay);
+    tip = document.createElement('div');
+    tip.id = '__zuper_tip';
+    tip.style.cssText = 'position:fixed;background:#0f172a;color:#fff;font:600 11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0.02em;padding:4px 8px;border-radius:4px;z-index:2147483647;pointer-events:none;white-space:nowrap;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.18);';
+    document.documentElement.appendChild(tip);
+  }
+
+  function selectorFor(el){
+    var path=[]; var cur=el;
+    while (cur && cur.nodeType===1 && cur !== document.documentElement){
+      var part = cur.tagName.toLowerCase();
+      if (cur.id){ path.unshift('#' + (window.CSS && CSS.escape ? CSS.escape(cur.id) : cur.id)); break; }
+      var p = cur.parentElement;
+      if (p){
+        var sibs = Array.prototype.filter.call(p.children, function(s){ return s.tagName === cur.tagName; });
+        if (sibs.length > 1) part += ':nth-of-type(' + (sibs.indexOf(cur)+1) + ')';
+      }
+      path.unshift(part);
+      cur = p;
+    }
+    return path.join(' > ');
+  }
+
+  function describe(el){
+    var tag = el.tagName.toLowerCase();
+    var id  = el.id ? '#' + el.id : '';
+    var cls = '';
+    if (el.classList && el.classList.length){
+      cls = '.' + Array.prototype.slice.call(el.classList, 0, 2).join('.');
+    }
+    return tag + id + cls;
+  }
+
+  function move(e){
+    if (!active) return;
+    var el = e.target;
+    if (!el || el === overlay || el === tip) return;
+    lastEl = el;
+    var r = el.getBoundingClientRect();
+    overlay.style.left = r.left + 'px';
+    overlay.style.top = r.top + 'px';
+    overlay.style.width = r.width + 'px';
+    overlay.style.height = r.height + 'px';
+    overlay.style.display = 'block';
+    tip.textContent = describe(el) + ' · ' + Math.round(r.width) + '×' + Math.round(r.height);
+    var top = r.top - 24;
+    if (top < 4) top = r.top + r.height + 4;
+    tip.style.left = Math.max(4, r.left) + 'px';
+    tip.style.top  = top + 'px';
+    tip.style.display = 'block';
+  }
+  function pick(e){
+    if (!active) return;
+    e.preventDefault(); e.stopPropagation();
+    var el = lastEl || e.target;
+    var r = el.getBoundingClientRect();
+    var vw = Math.max(document.documentElement.clientWidth || 0, 1);
+    var vh = Math.max(document.documentElement.clientHeight || 0, 1);
+    var data = {
+      type: 'zuper:picked',
+      selector: selectorFor(el),
+      describe: describe(el),
+      text: (el.innerText || el.textContent || '').trim().slice(0,80),
+      rect: { x:r.left, y:r.top, w:r.width, h:r.height },
+      // Normalised viewport coords for fallback rendering on the parent side.
+      x: (r.left + r.width/2) / vw,
+      y: (r.top + r.height/2) / vh
+    };
+    stop();
+    try { parent.postMessage(data, '*'); } catch(_){}
+  }
+  function keyCancel(e){
+    if (e.key === 'Escape'){ stop(); try { parent.postMessage({type:'zuper:cancelled'}, '*'); } catch(_){} }
+  }
+  function start(){
+    ensureUi();
+    active = true;
+    document.addEventListener('mousemove', move, true);
+    document.addEventListener('click', pick, true);
+    document.addEventListener('keydown', keyCancel, true);
+    document.documentElement.style.cursor = 'crosshair';
+  }
+  function stop(){
+    active = false;
+    document.removeEventListener('mousemove', move, true);
+    document.removeEventListener('click', pick, true);
+    document.removeEventListener('keydown', keyCancel, true);
+    document.documentElement.style.cursor = '';
+    if (overlay) overlay.style.display = 'none';
+    if (tip)     tip.style.display = 'none';
+  }
+  function drawFlashAt(el){
+    var r = el.getBoundingClientRect();
+    overlay.style.transition = 'none';
+    overlay.style.left = r.left + 'px';
+    overlay.style.top = r.top + 'px';
+    overlay.style.width = r.width + 'px';
+    overlay.style.height = r.height + 'px';
+    overlay.style.display = 'block';
+    try {
+      overlay.animate(
+        [{ opacity:0, transform:'scale(0.96)' },
+         { opacity:1, transform:'scale(1)'   , offset: 0.18 },
+         { opacity:0, transform:'scale(1.06)' }],
+        { duration:1200, easing:'cubic-bezier(0.16,1,0.3,1)' }
+      );
+    } catch(_){}
+    setTimeout(function(){ if (overlay) overlay.style.display = 'none'; }, 1200);
+  }
+
+  // Wait until the target element's position has been stable for ~2 polling
+  // intervals (so smooth scrolling has finished and layout has settled), or
+  // bail after a hard cap. Then draw the flash. This is more reliable than
+  // a fixed setTimeout because scroll duration varies with distance.
+  function waitForSettle(el, cb){
+    var lastTop = null, lastLeft = null, sameCount = 0, ticks = 0;
+    function tick(){
+      var r = el.getBoundingClientRect();
+      // Treat zero-rect (hidden / detached) as not-settled but bail-able.
+      if (r.width === 0 && r.height === 0) {
+        if (++ticks > 24) cb(); // ~1.2s — element never appears; let caller decide
+        else setTimeout(tick, 50);
+        return;
+      }
+      if (lastTop !== null && Math.abs(r.top - lastTop) < 0.5 && Math.abs(r.left - lastLeft) < 0.5) {
+        if (++sameCount >= 2) { cb(); return; }
+      } else {
+        sameCount = 0;
+      }
+      lastTop = r.top; lastLeft = r.left;
+      if (++ticks > 30) { cb(); return; } // ~1.5s hard cap
+      setTimeout(tick, 50);
+    }
+    setTimeout(tick, 40);
+  }
+
+  function flash(selector){
+    try {
+      ensureUi();
+      var el = document.querySelector(selector);
+      if (!el) {
+        try { parent.postMessage({ type:'zuper:not-found', selector: selector }, '*'); } catch(_){}
+        return;
+      }
+      // Pre-check: is element actually visible? Hidden elements have a zero rect.
+      var preRect = el.getBoundingClientRect();
+      if (preRect.width === 0 && preRect.height === 0) {
+        try { parent.postMessage({ type:'zuper:not-visible', selector: selector }, '*'); } catch(_){}
+        return;
+      }
+      el.scrollIntoView({ block:'center', inline:'center', behavior:'smooth' });
+      waitForSettle(el, function(){ drawFlashAt(el); });
+    } catch(_){}
+  }
+
+  window.addEventListener('message', function(e){
+    var d = e.data;
+    if (!d || typeof d !== 'object') return;
+    if (d.type === 'zuper:start')  start();
+    else if (d.type === 'zuper:stop') stop();
+    else if (d.type === 'zuper:flash') flash(d.selector);
+  });
+
+  try { parent.postMessage({ type:'zuper:ready' }, '*'); } catch(_){}
+})();
+`;
+
+async function proxyHtml(target, { stripScripts = true } = {}) {
+  const res = await fetch(target, {
+    redirect: 'follow',
+    headers: { 'User-Agent': 'Mozilla/5.0 (zuper-prototype-dashboard)' },
+  });
+  if (!res.ok && res.status >= 400) {
+    throw new Error(`Target returned HTTP ${res.status}`);
+  }
+  let body = await res.text();
+  const finalUrl = res.url || target;
+
+  // Strip any meta-level CSP / XFO baked into the document.
+  body = body.replace(/<meta[^>]+http-equiv\s*=\s*['"]?content-security-policy['"]?[^>]*>/gi, '');
+  body = body.replace(/<meta[^>]+http-equiv\s*=\s*['"]?x-frame-options['"]?[^>]*>/gi, '');
+
+  if (stripScripts) {
+    // Remove all <script>…</script> blocks AND self-closing/empty script tags.
+    // This prevents SPA hydration (which breaks on a different origin) from
+    // crashing the page. Server-rendered HTML stays intact and inspectable.
+    body = body.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    body = body.replace(/<script\b[^>]*\/?>/gi, '');
+    // Preloads/prefetches that hint scripts can also kick things off.
+    body = body.replace(/<link[^>]+rel\s*=\s*['"]?(?:modulepreload|preload)['"]?[^>]*as\s*=\s*['"]?script['"]?[^>]*>/gi, '');
+    body = body.replace(/<link[^>]+as\s*=\s*['"]?script['"]?[^>]*>/gi, '');
+    // Strip on-* attribute handlers from elements.
+    body = body.replace(/\s+on[a-z]+\s*=\s*"(?:[^"\\]|\\.)*"/gi, '');
+    body = body.replace(/\s+on[a-z]+\s*=\s*'(?:[^'\\]|\\.)*'/gi, '');
+  }
+
+  const baseTag = `<base href="${escapeBasic(finalUrl)}">`;
+  const inspector = `<script>${INSPECTOR_SCRIPT}</script>`;
+  // A small style block to hide common "no-JS" hidden states so the SSR
+  // content shows even though JS isn't running.
+  const noJsCss = `<style>noscript{display:contents!important}[hidden][data-state],[data-loading]{display:initial!important}</style>`;
+  const head = `${baseTag}${inspector}${stripScripts ? noJsCss : ''}`;
+
+  if (/<head[^>]*>/i.test(body)) {
+    body = body.replace(/<head[^>]*>/i, m => m + head);
+  } else if (/<html[^>]*>/i.test(body)) {
+    body = body.replace(/<html[^>]*>/i, m => m + '<head>' + head + '</head>');
+  } else {
+    body = head + body;
+  }
+  return { status: res.status === 0 ? 200 : res.status, body };
+}
+
 // ────────────────────────── routes ──────────────────────────
 
 const MIME = {
@@ -484,6 +719,32 @@ async function handle(req, res) {
   try {
     if (p === '/api/health') {
       return sendJson(res, { ok: true, parent: PARENT, port: PORT, githubAuth: !!GITHUB_TOKEN });
+    }
+
+    // /proxy?url=<target>  — fetch a target URL server-side and serve it from our
+    // origin so the dashboard's iframe can run an inspector script against it.
+    if (p === '/proxy' && req.method === 'GET') {
+      const target = url.searchParams.get('url');
+      if (!target || !/^https?:\/\//i.test(target)) {
+        return sendJson(res, { error: 'valid http(s) url required' }, 400);
+      }
+      try {
+        const out = await proxyHtml(target, {
+          stripScripts: url.searchParams.get('js') !== 'on',
+        });
+        res.writeHead(out.status, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store',
+          // Strip any framing restrictions inherited from the target — our origin owns this response.
+        });
+        return res.end(out.body);
+      } catch (err) {
+        res.writeHead(502, { 'Content-Type': 'text/html; charset=utf-8' });
+        return res.end(`<!doctype html><meta charset="utf-8"><body style="font:14px ui-sans-serif,system-ui;padding:24px;color:#475569">
+          <h2 style="color:#0f172a;margin:0 0 8px">Couldn't load preview</h2>
+          <p>Proxy fetch failed: ${escapeBasic(err.message)}</p>
+          <p><a href="${escapeBasic(target)}" target="_blank" style="color:#fd5000">Open the original in a new tab</a></p></body>`);
+      }
     }
     if (p === '/api/projects' && req.method === 'GET') {
       return sendJson(res, await listProjects());
@@ -609,16 +870,49 @@ async function handle(req, res) {
       const body = await readBody(req);
       const text = (body.text || '').trim();
       if (!text) return sendJson(res, { error: 'text required' }, 400);
+      const clamp01 = (n) => typeof n === 'number' && isFinite(n) ? Math.max(0, Math.min(1, n)) : null;
+      let pin = null;
+      if (body.pin && typeof body.pin === 'object') {
+        const x = clamp01(body.pin.x);
+        const y = clamp01(body.pin.y);
+        if (x !== null && y !== null) {
+          pin = { x, y };
+          if (typeof body.pin.t === 'number' && isFinite(body.pin.t)) pin.t = body.pin.t;
+          if (typeof body.pin.selector === 'string' && body.pin.selector) pin.selector = body.pin.selector.slice(0, 500);
+          if (typeof body.pin.label === 'string' && body.pin.label) pin.label = body.pin.label.slice(0, 80);
+        }
+      }
       const c = {
         id: uid('c'),
         author: (body.author || '').trim() || 'Anonymous',
         text,
+        pin,
         createdAt: nowMs(),
       };
       v.comments = v.comments || [];
       v.comments.push(c);
       v.updatedAt = nowMs();
       proj.updatedAt = nowMs();
+      saveStore(store);
+      return sendJson(res, { comment: c });
+    }
+
+    // Edit comment text.
+    cm = p.match(/^\/api\/cloud\/projects\/([^/]+)\/versions\/([^/]+)\/comments\/([^/]+)$/);
+    if (cm && req.method === 'PATCH') {
+      const proj = findProject(decodeURIComponent(cm[1]));
+      if (!proj) return notFound(res);
+      const v = (proj.versions || []).find(x => x.id === decodeURIComponent(cm[2]));
+      if (!v) return notFound(res);
+      const c = (v.comments || []).find(x => x.id === decodeURIComponent(cm[3]));
+      if (!c) return notFound(res);
+      const body = await readBody(req);
+      if (typeof body.text === 'string') {
+        const text = body.text.trim();
+        if (!text) return sendJson(res, { error: 'text required' }, 400);
+        c.text = text;
+        c.editedAt = nowMs();
+      }
       saveStore(store);
       return sendJson(res, { comment: c });
     }
