@@ -4,3 +4,6 @@ node_modules/
 # Local working artifacts — not source
 Customer Portal - Zuper Pro*.html
 zuper-logo-data-uri.txt
+
+# Bridge runtime state (projects, uploaded files) — local to each machine
+_data/

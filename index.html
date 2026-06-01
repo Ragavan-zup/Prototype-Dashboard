@@ -99,6 +99,134 @@
       to   { opacity: 1; transform: translateY(0) scale(1); }
     }
 
+    /* Project page preview tiles */
+    .ptile {
+      width: 288px;
+      flex: 0 0 288px;
+    }
+    .ptile-frame {
+      width: 288px;
+      height: 360px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      position: relative;
+      cursor: pointer;
+      transition: transform 200ms cubic-bezier(0.16,1,0.3,1), box-shadow 200ms;
+    }
+    .ptile-frame:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 32px rgba(15,23,42,0.12), 0 4px 12px rgba(15,23,42,0.06);
+    }
+    .ptile-iframe {
+      /* Scale a 1200x1500 viewport down to 288x360 (factor 0.24) */
+      width: 1200px;
+      height: 1500px;
+      transform: scale(0.24);
+      transform-origin: top left;
+      border: 0;
+      position: absolute;
+      top: 0; left: 0;
+      pointer-events: none;
+      background: #fff;
+    }
+    .ptile-img, .ptile-video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .ptile-fallback {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .ptile-fallback i { font-size: 42px !important; }
+    .ptile-fallback .ptile-host {
+      font-size: 12px;
+      color: #64748b;
+      max-width: 100%;
+      word-break: break-all;
+    }
+    .ptile-badge {
+      position: absolute;
+      top: 10px; left: 10px;
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.95);
+      color: #0f172a;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: 0.02em;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 1px 3px rgba(15,23,42,0.12);
+      backdrop-filter: blur(6px);
+    }
+    .ptile-open {
+      position: absolute;
+      top: 10px; right: 10px;
+      height: 30px;
+      padding: 0 10px;
+      border-radius: 7px;
+      background: rgba(15,23,42,0.85);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 180ms cubic-bezier(0.16,1,0.3,1), transform 180ms cubic-bezier(0.16,1,0.3,1), background 160ms;
+      cursor: pointer;
+      border: 0;
+      text-decoration: none;
+    }
+    .ptile-open i { font-size: 14px !important; }
+    .ptile-frame:hover .ptile-open { opacity: 1; transform: translateY(0); }
+    .ptile-open:hover { background: rgba(15,23,42,0.95); }
+    .ptile-sub {
+      margin-top: 2px;
+      font-size: 12px;
+      color: #64748b;
+      max-width: 288px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .ptile-sub i { font-size: 13px; }
+    .ptile-label {
+      margin-top: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+      line-height: 1.35;
+      max-width: 288px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .ptile-meta {
+      margin-top: 2px;
+      font-size: 12px;
+      color: #64748b;
+      max-width: 288px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     /* Empty state illustration */
     .empty-grid {
       background-image:
@@ -172,6 +300,8 @@
   <!-- ============== PAGE ============== -->
   <main class="max-w-7xl mx-auto px-4 md:px-6 py-8">
 
+    <!-- All the dashboard sections — hidden when a project page is active -->
+    <div id="dashboardView">
     <!-- Page header -->
     <section class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-7">
       <div>
@@ -254,6 +384,56 @@
       <!-- cards injected here -->
     </section>
 
+    <!-- ============== GITHUB-LINKED PROJECTS (server-backed) ============== -->
+    <section class="mt-12 mb-5 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+      <div>
+        <div class="flex items-center gap-2 text-[12px] text-ink-500 mb-1">
+          <i class="ti ti-brand-github text-sm"></i>
+          <span class="uppercase tracking-wide font-medium">Cloud Projects</span>
+          <span id="cloudGhAuth" class="hidden ml-2 inline-flex items-center gap-1 h-5 px-1.5 rounded bg-emerald-50 text-emerald-700 text-[10.5px] font-medium">
+            <i class="ti ti-shield-check text-xs"></i> Authed
+          </span>
+          <span id="cloudGhAnon" class="hidden ml-2 inline-flex items-center gap-1 h-5 px-1.5 rounded bg-amber-50 text-amber-700 text-[10.5px] font-medium" title="No GITHUB_TOKEN set — limited to 60 requests/hour.">
+            <i class="ti ti-alert-triangle text-xs"></i> Anon (60/hr)
+          </span>
+        </div>
+        <h2 class="text-[20px] font-semibold text-ink-900 tracking-tight">GitHub-linked projects</h2>
+        <p class="mt-1 text-sm text-ink-500 max-w-2xl">
+          Link a GitHub repo and we'll pull commits as versions automatically. Mix in Vercel deploys, Loom videos, or screenshots — all stored on the local bridge until comp server lands.
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="cloudSyncAllBtn" class="inline-flex items-center gap-2 h-10 px-3.5 rounded-lg border border-ink-200 bg-white hover:bg-ink-50 text-sm font-medium text-ink-700 transition" title="Pull latest commits for every linked repo">
+          <i class="ti ti-refresh text-base"></i> Sync all
+        </button>
+        <button id="cloudNewProjectBtn" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-ink-900 hover:bg-ink-800 text-white text-sm font-medium shadow-card transition">
+          <i class="ti ti-brand-github text-base"></i> Add from GitHub
+        </button>
+      </div>
+    </section>
+
+    <section id="cloudProjectsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- cloud cards injected here -->
+    </section>
+
+    <section id="cloudEmpty" class="hidden">
+      <div class="relative bg-white border border-dashed border-ink-200 rounded-2xl py-12 px-6 text-center overflow-hidden">
+        <div class="absolute inset-0 empty-grid opacity-60 pointer-events-none"></div>
+        <div class="relative">
+          <div class="mx-auto h-14 w-14 rounded-2xl bg-ink-900 text-white flex items-center justify-center">
+            <i class="ti ti-brand-github text-3xl"></i>
+          </div>
+          <h3 class="mt-4 text-lg font-semibold text-ink-900">Link your first repo</h3>
+          <p class="mt-1 text-sm text-ink-500 max-w-sm mx-auto">
+            Paste any GitHub repo URL. We'll auto-create a project, pull recent commits as versions, and check back every 5 minutes.
+          </p>
+          <button id="cloudEmptyAddBtn" class="mt-5 inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-ink-900 hover:bg-ink-800 text-white text-sm font-medium shadow-card transition">
+            <i class="ti ti-brand-github text-base"></i> Add from GitHub
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- Empty state -->
     <section id="emptyState" class="hidden">
       <div class="relative bg-white border border-dashed border-ink-200 rounded-2xl py-16 px-6 text-center overflow-hidden">
@@ -280,6 +460,45 @@
       </div>
       <div>v0.1 · prototype dashboard</div>
     </footer>
+    </div><!-- /#dashboardView -->
+
+    <!-- ============== PROJECT PAGE (full-page, swaps in over dashboard) ============== -->
+    <section id="projectPage" class="hidden">
+      <div class="flex items-start justify-between gap-4 mb-8">
+        <div class="min-w-0">
+          <button id="projectBackBtn" class="inline-flex items-center gap-1.5 text-[13px] text-ink-500 hover:text-ink-800 mb-3 transition">
+            <i class="ti ti-arrow-left text-base"></i> All projects
+          </button>
+          <h1 id="projectPageTitle" class="text-[34px] md:text-[40px] font-semibold text-ink-900 tracking-tight leading-tight truncate"></h1>
+          <div class="mt-1 flex items-center flex-wrap gap-x-4 gap-y-1 text-[13px] text-ink-500">
+            <a id="projectPageRepo" target="_blank" rel="noopener" class="hidden items-center gap-1.5 hover:text-brand-600">
+              <i class="ti ti-brand-github text-sm"></i><span></span>
+            </a>
+            <span><span id="projectPageVersionCount">0</span> versions</span>
+            <span id="projectPageSynced"></span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button id="projectPageSyncBtn" class="inline-flex items-center gap-2 h-10 px-3.5 rounded-lg border border-ink-200 bg-white hover:bg-ink-50 text-sm font-medium text-ink-700 transition" title="Pull latest commits">
+            <i class="ti ti-refresh text-base"></i> Sync
+          </button>
+          <button id="projectPageAddBtn" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium shadow-card transition">
+            <i class="ti ti-plus text-base"></i> Add version
+          </button>
+          <button id="projectPageDeleteBtn" class="inline-flex items-center justify-center h-10 w-10 rounded-lg border border-ink-200 bg-white hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-ink-600 transition" title="Delete project">
+            <i class="ti ti-trash text-base"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="projectPageGrid" class="flex flex-wrap gap-5"></div>
+
+      <div id="projectPageEmpty" class="hidden text-center py-16">
+        <div class="mx-auto h-14 w-14 rounded-2xl bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-versions text-3xl"></i></div>
+        <h3 class="mt-4 text-base font-semibold text-ink-900">No versions yet</h3>
+        <p class="mt-1 text-sm text-ink-500">Sync the linked repo, add a link, or upload a video/screenshot.</p>
+      </div>
+    </section>
   </main>
 
   <!-- ============== PROJECT DRAWER ============== -->
@@ -562,6 +781,403 @@
               <span id="importSubmitLabel">Import project</span>
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== CLOUD PROJECT DRAWER ============== -->
+  <div id="cloudDrawerRoot" class="fixed inset-0 z-50 hidden">
+    <div id="cloudDrawerScrim" class="absolute inset-0 bg-ink-900/30 backdrop-blur-[2px] opacity-0 transition-opacity duration-200"></div>
+    <aside id="cloudDrawerPanel" class="absolute right-0 top-0 h-full w-full max-w-[720px] bg-white shadow-pop translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col">
+      <div id="cloudDrawerHeader" class="relative h-32 overflow-hidden">
+        <div class="absolute inset-0 cover-grid"></div>
+        <button id="closeCloudDrawerBtn" class="absolute top-3 right-3 h-9 w-9 rounded-lg bg-white/90 hover:bg-white text-ink-700 flex items-center justify-center shadow-card">
+          <i class="ti ti-x text-lg"></i>
+        </button>
+      </div>
+      <div class="px-6 -mt-7 relative">
+        <div id="cloudDrawerIcon" class="h-14 w-14 rounded-2xl bg-white border border-ink-200 shadow-card flex items-center justify-center text-2xl"></div>
+      </div>
+      <div class="px-6 py-5 border-b border-ink-200">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <h2 id="cloudDrawerTitle" class="text-xl font-semibold text-ink-900 leading-tight truncate"></h2>
+            <p id="cloudDrawerDesc" class="mt-1 text-sm text-ink-500"></p>
+            <a id="cloudDrawerRepo" target="_blank" rel="noopener" class="mt-1 inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-700 hover:text-brand-600">
+              <i class="ti ti-brand-github text-sm"></i><span></span>
+            </a>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button id="cloudSyncBtn" class="h-9 px-3 rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-700 inline-flex items-center gap-1.5 text-[13px] font-medium" title="Pull latest commits">
+              <i class="ti ti-refresh text-base"></i> Sync
+            </button>
+            <button id="cloudDeleteProjectBtn" class="h-9 w-9 rounded-lg border border-ink-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-ink-600 flex items-center justify-center" title="Delete project">
+              <i class="ti ti-trash text-base"></i>
+            </button>
+          </div>
+        </div>
+        <div class="mt-4 flex items-center flex-wrap gap-x-4 gap-y-2 text-[12px] text-ink-500">
+          <span class="inline-flex items-center gap-1.5"><i class="ti ti-versions text-sm"></i><span id="cloudDrawerVersionCount">0 versions</span></span>
+          <span class="inline-flex items-center gap-1.5"><i class="ti ti-clock text-sm"></i><span id="cloudDrawerSynced">Never synced</span></span>
+          <span id="cloudDrawerSyncErr" class="hidden inline-flex items-center gap-1.5 text-red-600"><i class="ti ti-alert-triangle text-sm"></i><span></span></span>
+        </div>
+      </div>
+      <div class="flex-1 overflow-y-auto zuper-scrollbar">
+        <div class="px-6 pt-5 pb-2 flex items-center justify-between sticky top-0 bg-white z-10 border-b border-ink-100">
+          <div>
+            <h3 class="text-sm font-semibold text-ink-800">Versions</h3>
+            <p class="text-[12px] text-ink-500">Commits sync automatically. Add URLs and files manually.</p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button id="cloudAddUrlBtn" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-700 text-[13px] font-medium transition" title="Add a Vercel / Loom / Figma URL">
+              <i class="ti ti-link text-base"></i> Add link
+            </button>
+            <button id="cloudUploadBtn" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-[13px] font-medium shadow-card transition">
+              <i class="ti ti-upload text-base"></i> Upload
+            </button>
+          </div>
+        </div>
+        <ul id="cloudVersionsList" class="px-6 py-3 space-y-2.5"></ul>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ============== CLOUD NEW PROJECT MODAL ============== -->
+  <div id="cloudNewProjectModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-ink-900/40 backdrop-blur-sm modal-backdrop"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="modal-pop w-full max-w-lg bg-white rounded-2xl shadow-pop border border-ink-200">
+        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="h-9 w-9 rounded-lg bg-ink-900 text-white flex items-center justify-center"><i class="ti ti-brand-github text-xl"></i></div>
+            <div>
+              <h3 class="text-base font-semibold text-ink-900">Add from GitHub</h3>
+              <p class="text-[12px] text-ink-500">Paste a repo URL. Recent commits will be pulled as versions.</p>
+            </div>
+          </div>
+          <button class="closeCloudModalBtn h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-x text-base"></i></button>
+        </div>
+        <form id="cloudNewProjectForm" class="px-6 py-5 space-y-4">
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">GitHub repo URL <span class="text-ink-400 font-normal">(optional — leave blank for a manual-only project)</span></label>
+            <input name="githubRepo" placeholder="https://github.com/owner/repo"
+                   class="w-full h-10 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus" />
+            <p class="mt-1 text-[11px] text-ink-400">Also accepts <span class="font-mono">owner/repo</span> or SSH URLs.</p>
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Project name</label>
+            <input name="name" required maxlength="60" placeholder="e.g. Instant Estimation"
+                   class="w-full h-10 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus" />
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Description <span class="text-ink-400 font-normal">(optional)</span></label>
+            <textarea name="description" rows="2" maxlength="200" placeholder="What is this prototype about?"
+                      class="w-full px-3 py-2 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus resize-none"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Icon</label>
+              <div id="cloudIconPicker" class="grid grid-cols-6 gap-1.5"></div>
+            </div>
+            <div>
+              <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Cover color</label>
+              <div id="cloudColorPicker" class="grid grid-cols-6 gap-1.5"></div>
+            </div>
+          </div>
+        </form>
+        <div class="px-6 py-4 bg-ink-50 rounded-b-2xl flex items-center justify-between gap-3">
+          <span class="text-[11px] text-ink-500 inline-flex items-center gap-1.5"><i class="ti ti-server-2"></i> Stored on local bridge · will move to comp server later</span>
+          <div class="flex items-center gap-2">
+            <button type="button" class="closeCloudModalBtn h-9 px-3.5 rounded-lg text-sm text-ink-700 hover:bg-ink-100">Cancel</button>
+            <button type="submit" form="cloudNewProjectForm" id="cloudNewProjectSubmit" class="h-9 px-4 rounded-lg bg-ink-900 hover:bg-ink-800 text-white text-sm font-medium">
+              <span id="cloudNewProjectLabel">Create project</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== CLOUD ADD LINK MODAL ============== -->
+  <div id="cloudAddLinkModal" class="fixed inset-0 z-[55] hidden">
+    <div class="absolute inset-0 bg-ink-900/40 backdrop-blur-sm modal-backdrop"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="modal-pop w-full max-w-md bg-white rounded-2xl shadow-pop border border-ink-200">
+        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="h-9 w-9 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center"><i class="ti ti-link text-xl"></i></div>
+            <div>
+              <h3 class="text-base font-semibold text-ink-900">Add a link as a version</h3>
+              <p class="text-[12px] text-ink-500">Vercel preview, Loom, Figma, Drive — anything with a URL.</p>
+            </div>
+          </div>
+          <button class="closeCloudModalBtn h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-x text-base"></i></button>
+        </div>
+        <form id="cloudAddLinkForm" class="px-6 py-5 space-y-4">
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">URL</label>
+            <input name="url" required placeholder="https://my-prototype.vercel.app"
+                   class="w-full h-10 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus" />
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Label</label>
+            <input name="name" maxlength="60" placeholder="e.g. Preview deploy / Walkthrough video"
+                   class="w-full h-10 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus" />
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Notes <span class="text-ink-400 font-normal">(optional)</span></label>
+            <textarea name="notes" rows="2" maxlength="200" placeholder="What's in this version?"
+                      class="w-full px-3 py-2 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus resize-none"></textarea>
+          </div>
+        </form>
+        <div class="px-6 py-4 bg-ink-50 rounded-b-2xl flex items-center justify-end gap-2">
+          <button type="button" class="closeCloudModalBtn h-9 px-3.5 rounded-lg text-sm text-ink-700 hover:bg-ink-100">Cancel</button>
+          <button type="submit" form="cloudAddLinkForm" class="h-9 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Add version</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input for cloud uploads -->
+  <input id="cloudUploadInput" type="file" accept="video/*,image/*" class="sr-only">
+
+  <!-- ============== ADD VERSION MODAL (unified link + upload) ============== -->
+  <div id="addVersionModal" class="fixed inset-0 z-[60] hidden">
+    <div class="absolute inset-0 bg-ink-900/45 backdrop-blur-sm modal-backdrop"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="modal-pop w-full max-w-4xl bg-white rounded-2xl shadow-pop border border-ink-200 max-h-[92vh] flex flex-col">
+        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between shrink-0">
+          <div class="flex items-center gap-3">
+            <div class="h-9 w-9 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center"><i class="ti ti-plus text-xl"></i></div>
+            <div>
+              <h3 class="text-base font-semibold text-ink-900">Add a new version</h3>
+              <p class="text-[12px] text-ink-500">Upload a file or paste a link. Add details on the right.</p>
+            </div>
+          </div>
+          <button class="closeAddVersionBtn h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-x text-base"></i></button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-0 flex-1 overflow-hidden">
+          <!-- LEFT: source picker -->
+          <div class="md:col-span-3 p-6 border-r border-ink-200 overflow-y-auto zuper-scrollbar">
+            <div class="inline-flex p-0.5 bg-ink-100 rounded-lg mb-4">
+              <button data-av-tab="upload" class="av-tab px-3 h-9 rounded-md text-ink-700 text-sm flex items-center gap-1.5 bg-white shadow-sm">
+                <i class="ti ti-upload text-base"></i> Upload file
+              </button>
+              <button data-av-tab="link" class="av-tab px-3 h-9 rounded-md text-ink-500 text-sm flex items-center gap-1.5">
+                <i class="ti ti-link text-base"></i> Add link
+              </button>
+            </div>
+
+            <!-- Upload pane -->
+            <div data-av-pane="upload">
+              <div id="avDropZone" class="border-2 border-dashed border-ink-200 hover:border-brand-300 hover:bg-brand-50/30 rounded-xl p-10 text-center transition cursor-pointer">
+                <i class="ti ti-cloud-upload text-4xl text-ink-400"></i>
+                <p class="mt-2 text-sm text-ink-700">Drop a video, image, or any file here</p>
+                <p class="text-[12px] text-ink-400">or <span class="text-brand-600 font-medium">browse</span> — accepts mp4, webm, png, jpg, gif, pdf, etc.</p>
+              </div>
+              <input id="avFileInput" type="file" class="sr-only">
+
+              <div id="avFilePreview" class="hidden mt-4 border border-ink-200 rounded-xl p-3 flex items-center gap-3 bg-ink-50">
+                <div id="avFileThumb" class="h-14 w-14 rounded-lg bg-white border border-ink-200 flex items-center justify-center text-brand-500 shrink-0 overflow-hidden">
+                  <i class="ti ti-file text-2xl"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[13px] font-medium text-ink-800 truncate" id="avFileName"></div>
+                  <div class="text-[11px] text-ink-500" id="avFileMeta"></div>
+                </div>
+                <button id="avFileClear" type="button" class="h-8 w-8 rounded-lg hover:bg-ink-200 text-ink-500 flex items-center justify-center"><i class="ti ti-x text-base"></i></button>
+              </div>
+            </div>
+
+            <!-- Link pane -->
+            <div data-av-pane="link" class="hidden">
+              <label class="block text-[12px] font-medium text-ink-700 mb-1.5">Paste a URL</label>
+              <input id="avUrlInput" type="url" placeholder="https://my-prototype.vercel.app or Loom / Figma / Drive link"
+                     class="w-full h-11 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus" />
+              <div id="avUrlKind" class="hidden mt-3 inline-flex items-center gap-2 h-7 px-2.5 rounded-md bg-indigo-50 text-indigo-700 text-[12px] font-medium">
+                <i class="ti ti-link text-sm"></i><span></span>
+              </div>
+              <p class="mt-3 text-[12px] text-ink-500">Tip: Vercel preview deploys, Loom recordings, Figma frames, Drive videos, or any shareable URL.</p>
+            </div>
+          </div>
+
+          <!-- RIGHT: metadata -->
+          <div class="md:col-span-2 p-6 overflow-y-auto zuper-scrollbar bg-ink-50/50">
+            <h4 class="text-[11px] font-semibold uppercase tracking-wide text-ink-500 mb-3">Version details</h4>
+            <form id="addVersionForm" class="space-y-3">
+              <div>
+                <label class="block text-[12px] font-medium text-ink-700 mb-1">Version number</label>
+                <input name="label" id="avLabel" maxlength="20"
+                       class="w-full h-9 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 input-focus" />
+                <p class="mt-1 text-[11px] text-ink-400" id="avLabelHint">Auto-suggested. Override if you want.</p>
+              </div>
+              <div>
+                <label class="block text-[12px] font-medium text-ink-700 mb-1">Title</label>
+                <input name="name" maxlength="80" placeholder="e.g. Two-step intake walkthrough"
+                       class="w-full h-9 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus" />
+              </div>
+              <div>
+                <label class="block text-[12px] font-medium text-ink-700 mb-1">What changed?</label>
+                <textarea name="description" rows="4" maxlength="600" placeholder="Quick notes about this version — what's new, what to look for, known issues."
+                          class="w-full px-3 py-2 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 placeholder-ink-400 input-focus resize-none"></textarea>
+              </div>
+              <div>
+                <label class="block text-[12px] font-medium text-ink-700 mb-1">Status</label>
+                <div class="grid grid-cols-3 gap-1.5">
+                  <label class="cursor-pointer">
+                    <input type="radio" name="status" value="draft" checked class="peer sr-only">
+                    <div class="h-9 px-2 border border-ink-200 rounded-lg flex items-center justify-center text-[12.5px] text-ink-700 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">Draft</div>
+                  </label>
+                  <label class="cursor-pointer">
+                    <input type="radio" name="status" value="review" class="peer sr-only">
+                    <div class="h-9 px-2 border border-ink-200 rounded-lg flex items-center justify-center text-[12.5px] text-ink-700 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">In review</div>
+                  </label>
+                  <label class="cursor-pointer">
+                    <input type="radio" name="status" value="published" class="peer sr-only">
+                    <div class="h-9 px-2 border border-ink-200 rounded-lg flex items-center justify-center text-[12.5px] text-ink-700 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">Published</div>
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label class="block text-[12px] font-medium text-ink-700 mb-1">Uploaded by</label>
+                <input name="uploadedBy" id="avUploadedBy" maxlength="40"
+                       class="w-full h-9 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 input-focus" />
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="px-6 py-4 bg-ink-50 rounded-b-2xl flex items-center justify-between gap-3 shrink-0 border-t border-ink-200">
+          <span class="text-[11px] text-ink-500 inline-flex items-center gap-1.5"><i class="ti ti-server-2"></i> Stored on local bridge</span>
+          <div class="flex items-center gap-2">
+            <button type="button" class="closeAddVersionBtn h-9 px-3.5 rounded-lg text-sm text-ink-700 hover:bg-ink-100">Cancel</button>
+            <button type="submit" form="addVersionForm" id="avSubmit" class="h-9 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium disabled:opacity-50">Add version</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== EDIT VERSION MODAL ============== -->
+  <div id="editVersionModal" class="fixed inset-0 z-[75] hidden">
+    <div class="absolute inset-0 bg-ink-900/45 backdrop-blur-sm modal-backdrop"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="modal-pop w-full max-w-md bg-white rounded-2xl shadow-pop border border-ink-200">
+        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="h-9 w-9 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center"><i class="ti ti-pencil text-xl"></i></div>
+            <div>
+              <h3 class="text-base font-semibold text-ink-900">Edit version</h3>
+              <p class="text-[12px] text-ink-500">Update version metadata.</p>
+            </div>
+          </div>
+          <button class="closeEditVersionBtn h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-x text-base"></i></button>
+        </div>
+        <form id="editVersionForm" class="px-6 py-5 space-y-3">
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1">Version number</label>
+            <input name="label" maxlength="20" required class="w-full h-9 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 input-focus" />
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1">Title</label>
+            <input name="name" maxlength="80" class="w-full h-9 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 input-focus" />
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1">What changed?</label>
+            <textarea name="description" rows="4" maxlength="600" class="w-full px-3 py-2 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 input-focus resize-none"></textarea>
+          </div>
+          <div id="evUrlRow" class="hidden">
+            <label class="block text-[12px] font-medium text-ink-700 mb-1">URL</label>
+            <input name="url" type="url" class="w-full h-9 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 input-focus" />
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1">Status</label>
+            <div class="grid grid-cols-3 gap-1.5">
+              <label class="cursor-pointer">
+                <input type="radio" name="status" value="draft" class="peer sr-only">
+                <div class="h-9 px-2 border border-ink-200 rounded-lg flex items-center justify-center text-[12.5px] text-ink-700 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">Draft</div>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="status" value="review" class="peer sr-only">
+                <div class="h-9 px-2 border border-ink-200 rounded-lg flex items-center justify-center text-[12.5px] text-ink-700 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">In review</div>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="status" value="published" class="peer sr-only">
+                <div class="h-9 px-2 border border-ink-200 rounded-lg flex items-center justify-center text-[12.5px] text-ink-700 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">Published</div>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium text-ink-700 mb-1">Uploaded by</label>
+            <input name="uploadedBy" maxlength="40" class="w-full h-9 px-3 bg-white border border-ink-200 rounded-lg text-sm text-ink-800 input-focus" />
+          </div>
+        </form>
+        <div class="px-6 py-4 bg-ink-50 rounded-b-2xl flex items-center justify-end gap-2">
+          <button type="button" class="closeEditVersionBtn h-9 px-3.5 rounded-lg text-sm text-ink-700 hover:bg-ink-100">Cancel</button>
+          <button type="submit" form="editVersionForm" id="evSubmit" class="h-9 px-4 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== VERSION PREVIEW MODAL (Mobbin-style) ============== -->
+  <div id="previewModal" class="fixed inset-0 z-[70] hidden">
+    <div id="previewBackdrop" class="absolute inset-0 bg-ink-900/60 backdrop-blur-sm"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4 md:p-8">
+      <div class="modal-pop w-full h-full max-w-[1400px] max-h-[92vh] bg-white rounded-2xl shadow-pop border border-ink-200 flex flex-col overflow-hidden">
+        <div class="h-14 px-5 border-b border-ink-200 flex items-center justify-between shrink-0">
+          <div class="flex items-center gap-3 min-w-0">
+            <span id="pmBadge" class="inline-flex items-center gap-1.5 h-6 px-2 rounded-md bg-ink-100 text-ink-700 text-[11px] font-semibold uppercase tracking-wide"></span>
+            <h3 id="pmTitle" class="text-[15px] font-semibold text-ink-900 truncate"></h3>
+            <span id="pmLabel" class="font-mono text-[12px] text-ink-500"></span>
+          </div>
+          <div class="flex items-center gap-1.5 relative">
+            <a id="pmOpenNew" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-700 text-[13px] font-medium">
+              <i class="ti ti-external-link text-base"></i> Open in new tab
+            </a>
+            <button id="pmKebab" class="h-9 w-9 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center" title="More"><i class="ti ti-dots-vertical text-lg"></i></button>
+            <div id="pmKebabMenu" class="hidden absolute right-12 top-11 z-10 min-w-[160px] bg-white border border-ink-200 rounded-lg shadow-pop py-1">
+              <button data-pm-action="edit" class="w-full text-left px-3 py-1.5 hover:bg-ink-50 text-ink-700 text-sm flex items-center gap-2"><i class="ti ti-pencil text-base text-ink-500"></i>Edit</button>
+              <div class="my-1 h-px bg-ink-100"></div>
+              <button data-pm-action="delete" class="w-full text-left px-3 py-1.5 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><i class="ti ti-trash text-base"></i>Delete</button>
+            </div>
+            <button id="pmClose" class="h-9 w-9 rounded-lg hover:bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-x text-lg"></i></button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-5 flex-1 min-h-0">
+          <div id="pmPreview" class="md:col-span-3 bg-ink-50 flex items-center justify-center overflow-hidden">
+            <!-- preview content injected -->
+          </div>
+          <aside class="md:col-span-2 border-l border-ink-200 flex flex-col min-h-0">
+            <div class="px-5 py-4 border-b border-ink-200 overflow-y-auto zuper-scrollbar" style="max-height: 50%">
+              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-ink-500 mb-2">Details</h4>
+              <dl class="space-y-2 text-[13px]">
+                <div><dt class="text-ink-500 text-[11.5px]">Version</dt><dd id="pmDetailLabel" class="font-mono text-ink-900"></dd></div>
+                <div><dt class="text-ink-500 text-[11.5px]">Description</dt><dd id="pmDetailDesc" class="text-ink-800 whitespace-pre-wrap"></dd></div>
+                <div><dt class="text-ink-500 text-[11.5px]">Uploaded by</dt><dd id="pmDetailUploadedBy" class="text-ink-800"></dd></div>
+                <div><dt class="text-ink-500 text-[11.5px]">Status</dt><dd id="pmDetailStatus"></dd></div>
+                <div><dt class="text-ink-500 text-[11.5px]">Created</dt><dd id="pmDetailCreated" class="text-ink-800"></dd></div>
+                <div id="pmDetailUrlRow" class="hidden"><dt class="text-ink-500 text-[11.5px]">URL</dt><dd><a id="pmDetailUrl" target="_blank" rel="noopener" class="text-brand-600 hover:underline break-all"></a></dd></div>
+                <div id="pmDetailFileRow" class="hidden"><dt class="text-ink-500 text-[11.5px]">File</dt><dd id="pmDetailFile" class="text-ink-800"></dd></div>
+                <div id="pmDetailShaRow" class="hidden"><dt class="text-ink-500 text-[11.5px]">Commit</dt><dd><a id="pmDetailSha" target="_blank" rel="noopener" class="font-mono text-brand-600 hover:underline"></a></dd></div>
+              </dl>
+            </div>
+            <div class="px-5 py-4 flex-1 min-h-0 flex flex-col">
+              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-ink-500 mb-2">Comments <span id="pmCommentCount" class="text-ink-400 normal-case font-normal"></span></h4>
+              <div id="pmComments" class="flex-1 overflow-y-auto zuper-scrollbar space-y-2.5 pr-1"></div>
+              <form id="pmCommentForm" class="mt-3 flex items-end gap-2">
+                <div class="flex-1">
+                  <textarea id="pmCommentText" rows="2" required maxlength="800" placeholder="Add a comment…"
+                            class="w-full px-3 py-2 bg-white border border-ink-200 rounded-lg text-[13px] text-ink-800 placeholder-ink-400 input-focus resize-none"></textarea>
+                </div>
+                <button type="submit" class="h-9 px-3 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium flex items-center gap-1.5">
+                  <i class="ti ti-send text-base"></i> Post
+                </button>
+              </form>
+            </div>
+          </aside>
         </div>
       </div>
     </div>
@@ -2013,7 +2629,1091 @@
       renderProjects();
       renderStats();
     }
+    // Cloud projects (GitHub-linked) — always try; silently degrade if bridge is offline.
+    initCloud();
   })();
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CLOUD PROJECTS — GitHub-linked projects with mixed version types.
+  // Backed by /api/cloud/* on the bridge. Independent of the local store above.
+  // ═══════════════════════════════════════════════════════════════════════
+  const cloud = {
+    projects: [],
+    activeId: null,
+    pickedIcon: ICONS[0],
+    pickedCover: COVERS[0].name,
+    online: false,
+  };
+
+  async function api(method, path, body) {
+    const init = { method, headers: {} };
+    if (body !== undefined) {
+      init.headers['Content-Type'] = 'application/json';
+      init.body = JSON.stringify(body);
+    }
+    const res = await fetch(path, init);
+    const text = await res.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch {}
+    if (!res.ok) {
+      const msg = (data && data.error) || `HTTP ${res.status}`;
+      const err = new Error(msg);
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+
+  async function initCloud() {
+    try {
+      const data = await api('GET', '/api/cloud/projects');
+      cloud.online = true;
+      cloud.projects = data.projects || [];
+      document.getElementById('cloudGhAuth').classList.toggle('hidden', !data.githubAuth);
+      document.getElementById('cloudGhAnon').classList.toggle('hidden', !!data.githubAuth);
+      renderCloud();
+    } catch (err) {
+      cloud.online = false;
+      // Hide the whole cloud section if bridge is offline.
+      document.querySelectorAll('#cloudProjectsContainer, #cloudEmpty').forEach(el => el.classList.add('hidden'));
+    }
+    // Poll every 30s while tab visible.
+    setInterval(() => { if (!document.hidden && cloud.online) refreshCloud(); }, 30_000);
+  }
+
+  async function refreshCloud() {
+    try {
+      const data = await api('GET', '/api/cloud/projects');
+      cloud.projects = data.projects || [];
+      renderCloud();
+    } catch {}
+  }
+
+  function renderCloud() {
+    const grid = document.getElementById('cloudProjectsContainer');
+    const empty = document.getElementById('cloudEmpty');
+    if (cloud.projects.length === 0) {
+      grid.classList.add('hidden');
+      empty.classList.remove('hidden');
+    } else {
+      empty.classList.add('hidden');
+      grid.classList.remove('hidden');
+      grid.innerHTML = cloud.projects.map(cloudCardHTML).join('');
+      grid.querySelectorAll('[data-cloud-id]').forEach(el => {
+        el.addEventListener('click', () => openProjectPage(el.dataset.cloudId));
+      });
+    }
+    if (cloud.activeId && !document.getElementById('projectPage').classList.contains('hidden')) {
+      renderProjectPage();
+    }
+  }
+
+  function cloudCardHTML(p) {
+    const c = coverFor(p.cover);
+    const versions = p.versions || [];
+    const commits = versions.filter(v => v.type === 'commit').length;
+    const links = versions.filter(v => v.type === 'url').length;
+    const files = versions.filter(v => v.type === 'file').length;
+    const last = versions.slice().sort((a,b)=>b.updatedAt-a.updatedAt)[0];
+    return `
+      <article data-cloud-id="${p.id}"
+        class="group cursor-pointer bg-white border border-ink-200 rounded-xl overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all">
+        <div class="relative h-24 bg-gradient-to-br ${c.grad} overflow-hidden">
+          <div class="absolute inset-0 ${c.pat} opacity-70"></div>
+          <div class="absolute top-3 right-3 inline-flex items-center gap-1 h-6 px-2 rounded-md bg-white/90 backdrop-blur text-[11px] font-medium text-ink-700">
+            <i class="ti ti-versions text-[13px]"></i>${versions.length}
+          </div>
+          ${p.githubRepo ? `<div class="absolute top-3 left-3 inline-flex items-center gap-1 h-6 px-2 rounded-md bg-ink-900/85 backdrop-blur text-[11px] font-medium text-white">
+            <i class="ti ti-brand-github text-[13px]"></i>${escapeHtml(p.githubRepo)}
+          </div>` : ''}
+        </div>
+        <div class="px-4 pt-3 pb-4 -mt-6 relative">
+          <div class="h-11 w-11 rounded-xl bg-white border border-ink-200 shadow-card flex items-center justify-center text-ink-700">
+            <i class="ti ti-${escapeHtml(p.icon || 'rocket')} text-xl"></i>
+          </div>
+          <h3 class="mt-3 text-[15px] font-semibold text-ink-900 leading-snug truncate">${escapeHtml(p.name)}</h3>
+          <p class="mt-1 text-[13px] text-ink-500 line-clamp-2 min-h-[2.6em]">${escapeHtml(p.description || '—')}</p>
+          <div class="mt-3 flex items-center gap-3 text-[11.5px] text-ink-500">
+            <span class="inline-flex items-center gap-1" title="Commits"><i class="ti ti-git-commit text-sm"></i>${commits}</span>
+            <span class="inline-flex items-center gap-1" title="Links"><i class="ti ti-link text-sm"></i>${links}</span>
+            <span class="inline-flex items-center gap-1" title="Uploads"><i class="ti ti-paperclip text-sm"></i>${files}</span>
+            <span class="ml-auto inline-flex items-center gap-1"><i class="ti ti-clock text-sm"></i>${fmtRelative(p.updatedAt)}</span>
+          </div>
+        </div>
+      </article>`;
+  }
+
+  function openCloudDrawer(id) {
+    const p = cloud.projects.find(x => x.id === id);
+    if (!p) return;
+    cloud.activeId = id;
+    const c = coverFor(p.cover);
+    const root = document.getElementById('cloudDrawerRoot');
+    const scrim = document.getElementById('cloudDrawerScrim');
+    const panel = document.getElementById('cloudDrawerPanel');
+    const header = document.getElementById('cloudDrawerHeader');
+
+    document.getElementById('cloudDrawerTitle').textContent = p.name;
+    document.getElementById('cloudDrawerDesc').textContent = p.description || 'No description.';
+    document.getElementById('cloudDrawerIcon').innerHTML = `<i class="ti ti-${escapeHtml(p.icon || 'rocket')}" style="color:${c.hex}"></i>`;
+    const repoEl = document.getElementById('cloudDrawerRepo');
+    if (p.githubRepo) {
+      repoEl.href = 'https://github.com/' + p.githubRepo;
+      repoEl.querySelector('span').textContent = p.githubRepo;
+      repoEl.classList.remove('hidden');
+    } else {
+      repoEl.classList.add('hidden');
+    }
+    document.getElementById('cloudDrawerVersionCount').textContent =
+      (p.versions || []).length + ' versions';
+    document.getElementById('cloudDrawerSynced').textContent =
+      p.lastSyncedAt ? 'Synced ' + fmtRelative(p.lastSyncedAt) : (p.githubRepo ? 'Not synced yet' : 'No repo linked');
+    const errEl = document.getElementById('cloudDrawerSyncErr');
+    if (p.lastSyncError) { errEl.classList.remove('hidden'); errEl.querySelector('span').textContent = p.lastSyncError; }
+    else errEl.classList.add('hidden');
+    header.style.background = `linear-gradient(135deg, ${c.hex} 0%, ${shade(c.hex, -20)} 100%)`;
+    header.querySelector('div').className = `absolute inset-0 ${c.pat}`;
+
+    renderCloudVersions();
+    root.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      scrim.style.opacity = '1';
+      panel.style.transform = 'translateX(0)';
+    });
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeCloudDrawer() {
+    const root = document.getElementById('cloudDrawerRoot');
+    const scrim = document.getElementById('cloudDrawerScrim');
+    const panel = document.getElementById('cloudDrawerPanel');
+    scrim.style.opacity = '0';
+    panel.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      root.classList.add('hidden');
+      cloud.activeId = null;
+      document.body.style.overflow = '';
+    }, 280);
+  }
+
+  function renderCloudVersions() {
+    const p = cloud.projects.find(x => x.id === cloud.activeId);
+    if (!p) return;
+    const list = document.getElementById('cloudVersionsList');
+    const versions = (p.versions || []).slice().sort((a, b) => b.createdAt - a.createdAt);
+    if (versions.length === 0) {
+      list.innerHTML = `
+        <li class="py-8 text-center">
+          <div class="mx-auto h-10 w-10 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center mb-2"><i class="ti ti-versions text-xl"></i></div>
+          <div class="text-sm font-medium text-ink-800">No versions yet</div>
+          <div class="text-[12px] text-ink-500">${p.githubRepo ? 'Sync to pull commits, or' : 'Use'} <b>Add link</b> / <b>Upload</b>.</div>
+        </li>`;
+      return;
+    }
+    list.innerHTML = versions.map(v => cloudVersionRowHTML(v)).join('');
+    list.querySelectorAll('[data-cloud-del]').forEach(b => {
+      b.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const vid = b.dataset.cloudDel;
+        if (!confirm('Delete this version?')) return;
+        try {
+          await api('DELETE', `/api/cloud/projects/${p.id}/versions/${vid}`);
+          await refreshCloud();
+          toast('Version deleted');
+        } catch (err) { toast(err.message, 'err'); }
+      });
+    });
+  }
+
+  function cloudVersionRowHTML(v) {
+    if (v.type === 'commit') {
+      const meta = v.meta || {};
+      const sha = meta.shortSha || (meta.sha || '').slice(0, 7);
+      return `
+        <li class="group bg-white border border-ink-200 rounded-xl p-3.5 hover:border-ink-300 hover:shadow-card transition">
+          <div class="flex items-start gap-3">
+            <div class="h-10 w-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"><i class="ti ti-git-commit text-xl"></i></div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-mono text-[11px] text-ink-500">${escapeHtml(v.label)}</span>
+                <h4 class="text-sm font-semibold text-ink-900 truncate">${escapeHtml(v.name)}</h4>
+              </div>
+              <div class="mt-1.5 flex items-center flex-wrap gap-x-3 gap-y-1 text-[11.5px] text-ink-500">
+                ${meta.avatar ? `<img src="${escapeHtml(meta.avatar)}" class="h-4 w-4 rounded-full">` : '<i class="ti ti-user text-sm"></i>'}
+                <span>${escapeHtml(meta.author || 'unknown')}</span>
+                <span class="font-mono">${escapeHtml(sha)}</span>
+                <span><i class="ti ti-clock text-sm align-middle"></i> ${fmtRelative(v.createdAt)}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
+              ${meta.url ? `<a href="${escapeHtml(meta.url)}" target="_blank" rel="noopener" class="h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-800 flex items-center justify-center" title="View on GitHub"><i class="ti ti-external-link text-base"></i></a>` : ''}
+              <button data-cloud-del="${v.id}" class="h-8 w-8 rounded-lg hover:bg-red-50 hover:text-red-600 text-ink-500 flex items-center justify-center" title="Delete"><i class="ti ti-trash text-base"></i></button>
+            </div>
+          </div>
+        </li>`;
+    }
+    if (v.type === 'url') {
+      const kindIcon = { vercel:'triangle', netlify:'world', loom:'video', youtube:'brand-youtube', figma:'brand-figma', github:'brand-github', gdrive:'brand-google-drive' }[v.urlKind] || 'link';
+      const kindLabel = (v.urlKind || 'link').replace(/^\w/, c => c.toUpperCase());
+      return `
+        <li class="group bg-white border border-ink-200 rounded-xl p-3.5 hover:border-ink-300 hover:shadow-card transition">
+          <div class="flex items-start gap-3">
+            <div class="h-10 w-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0"><i class="ti ti-${kindIcon} text-xl"></i></div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-mono text-[11px] text-ink-500">${escapeHtml(v.label)}</span>
+                <h4 class="text-sm font-semibold text-ink-900 truncate">${escapeHtml(v.name || v.url)}</h4>
+                <span class="inline-flex items-center gap-1 h-5 px-1.5 rounded bg-indigo-50 text-indigo-700 text-[10.5px] font-medium">${escapeHtml(kindLabel)}</span>
+              </div>
+              <a href="${escapeHtml(v.url)}" target="_blank" rel="noopener" class="mt-1 inline-block text-[12.5px] text-brand-600 hover:underline truncate max-w-full">${escapeHtml(v.url)}</a>
+              ${v.notes ? `<p class="mt-1 text-[12.5px] text-ink-500 line-clamp-2">${escapeHtml(v.notes)}</p>` : ''}
+              <div class="mt-1.5 text-[11.5px] text-ink-500"><i class="ti ti-clock text-sm align-middle"></i> ${fmtRelative(v.createdAt)}</div>
+            </div>
+            <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
+              <a href="${escapeHtml(v.url)}" target="_blank" rel="noopener" class="h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-800 flex items-center justify-center" title="Open"><i class="ti ti-external-link text-base"></i></a>
+              <button data-cloud-del="${v.id}" class="h-8 w-8 rounded-lg hover:bg-red-50 hover:text-red-600 text-ink-500 flex items-center justify-center" title="Delete"><i class="ti ti-trash text-base"></i></button>
+            </div>
+          </div>
+        </li>`;
+    }
+    // file
+    const isImg = v.fileKind === 'image';
+    const isVid = v.fileKind === 'video';
+    const fileUrl = `/uploads/${encodeURIComponent(cloud.activeId)}/${encodeURIComponent(v.storedName)}`;
+    return `
+      <li class="group bg-white border border-ink-200 rounded-xl p-3.5 hover:border-ink-300 hover:shadow-card transition">
+        <div class="flex items-start gap-3">
+          ${isImg
+            ? `<a href="${fileUrl}" target="_blank" rel="noopener" class="h-14 w-14 rounded-lg overflow-hidden bg-ink-100 shrink-0"><img src="${fileUrl}" class="w-full h-full object-cover"></a>`
+            : `<div class="h-10 w-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0"><i class="ti ti-${isVid?'video':'paperclip'} text-xl"></i></div>`}
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-mono text-[11px] text-ink-500">${escapeHtml(v.label)}</span>
+              <h4 class="text-sm font-semibold text-ink-900 truncate">${escapeHtml(v.name)}</h4>
+              <span class="inline-flex items-center gap-1 h-5 px-1.5 rounded bg-rose-50 text-rose-700 text-[10.5px] font-medium">${escapeHtml(v.fileKind || 'file')}</span>
+            </div>
+            <div class="mt-1 text-[12.5px] text-ink-500 truncate">${escapeHtml(v.filename)} · ${fmtBytes(v.size)}</div>
+            ${v.notes ? `<p class="mt-1 text-[12.5px] text-ink-500 line-clamp-2">${escapeHtml(v.notes)}</p>` : ''}
+            <div class="mt-1.5 text-[11.5px] text-ink-500"><i class="ti ti-clock text-sm align-middle"></i> ${fmtRelative(v.createdAt)}</div>
+            ${isVid ? `<video src="${fileUrl}" controls class="mt-2 max-w-full rounded-lg border border-ink-200"></video>` : ''}
+          </div>
+          <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
+            <a href="${fileUrl}" target="_blank" rel="noopener" class="h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-800 flex items-center justify-center" title="Open"><i class="ti ti-external-link text-base"></i></a>
+            <a href="${fileUrl}" download="${escapeHtml(v.filename)}" class="h-8 w-8 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-800 flex items-center justify-center" title="Download"><i class="ti ti-download text-base"></i></a>
+            <button data-cloud-del="${v.id}" class="h-8 w-8 rounded-lg hover:bg-red-50 hover:text-red-600 text-ink-500 flex items-center justify-center" title="Delete"><i class="ti ti-trash text-base"></i></button>
+          </div>
+        </div>
+      </li>`;
+  }
+
+  function buildCloudPickers() {
+    const ip = document.getElementById('cloudIconPicker');
+    ip.innerHTML = ICONS.map(name => `
+      <button type="button" data-icon="${name}"
+        class="c-icon-pick h-9 w-full rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-700 flex items-center justify-center">
+        <i class="ti ti-${name} text-lg"></i>
+      </button>`).join('');
+    ip.querySelectorAll('.c-icon-pick').forEach(b => {
+      b.addEventListener('click', () => {
+        cloud.pickedIcon = b.dataset.icon;
+        ip.querySelectorAll('.c-icon-pick').forEach(x => x.classList.remove('border-brand-500','bg-brand-50','text-brand-700'));
+        b.classList.add('border-brand-500','bg-brand-50','text-brand-700');
+      });
+    });
+    ip.querySelector(`[data-icon="${cloud.pickedIcon}"]`).classList.add('border-brand-500','bg-brand-50','text-brand-700');
+
+    const cp = document.getElementById('cloudColorPicker');
+    cp.innerHTML = COVERS.map(c => `
+      <button type="button" data-cover="${c.name}"
+        class="c-color-pick h-9 w-full rounded-lg border-2 border-transparent flex items-center justify-center"
+        style="background:${c.hex}" title="${c.name}"></button>`).join('');
+    cp.querySelectorAll('.c-color-pick').forEach(b => {
+      b.addEventListener('click', () => {
+        cloud.pickedCover = b.dataset.cover;
+        cp.querySelectorAll('.c-color-pick').forEach(x => x.classList.remove('ring-2','ring-offset-2','ring-ink-900'));
+        b.classList.add('ring-2','ring-offset-2','ring-ink-900');
+      });
+    });
+    cp.querySelector(`[data-cover="${cloud.pickedCover}"]`).classList.add('ring-2','ring-offset-2','ring-ink-900');
+  }
+
+  function openCloudModal(id) {
+    document.getElementById(id).classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    if (id === 'cloudNewProjectModal') {
+      cloud.pickedIcon = ICONS[Math.floor(Math.random()*ICONS.length)];
+      cloud.pickedCover = COVERS[Math.floor(Math.random()*COVERS.length)].name;
+      buildCloudPickers();
+      const f = document.getElementById('cloudNewProjectForm');
+      f.reset();
+      setTimeout(() => f.querySelector('[name="githubRepo"]').focus(), 50);
+    } else if (id === 'cloudAddLinkModal') {
+      const f = document.getElementById('cloudAddLinkForm');
+      f.reset();
+      setTimeout(() => f.querySelector('[name="url"]').focus(), 50);
+    }
+  }
+
+  function closeCloudModals() {
+    ['cloudNewProjectModal','cloudAddLinkModal'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    if (document.getElementById('cloudDrawerRoot').classList.contains('hidden')) document.body.style.overflow = '';
+  }
+
+  // Wiring
+  document.getElementById('cloudNewProjectBtn').addEventListener('click', () => openCloudModal('cloudNewProjectModal'));
+  document.getElementById('cloudEmptyAddBtn').addEventListener('click', () => openCloudModal('cloudNewProjectModal'));
+  document.querySelectorAll('.closeCloudModalBtn').forEach(b => b.addEventListener('click', closeCloudModals));
+  document.querySelectorAll('#cloudNewProjectModal .modal-backdrop, #cloudAddLinkModal .modal-backdrop').forEach(b => b.addEventListener('click', closeCloudModals));
+  document.getElementById('closeCloudDrawerBtn').addEventListener('click', closeCloudDrawer);
+  document.getElementById('cloudDrawerScrim').addEventListener('click', closeCloudDrawer);
+
+  document.getElementById('cloudSyncAllBtn').addEventListener('click', async () => {
+    const targets = cloud.projects.filter(p => p.githubRepo);
+    if (targets.length === 0) { toast('No GitHub-linked projects to sync'); return; }
+    toast(`Syncing ${targets.length} repo${targets.length===1?'':'s'}…`);
+    let added = 0, errors = 0;
+    for (const p of targets) {
+      try { const r = await api('POST', `/api/cloud/projects/${p.id}/sync`); added += r.added || 0; }
+      catch { errors++; }
+    }
+    await refreshCloud();
+    toast(`${added} new commit${added===1?'':'s'} pulled${errors?` · ${errors} error(s)`:''}`);
+  });
+
+  document.getElementById('cloudSyncBtn').addEventListener('click', async () => {
+    const p = cloud.projects.find(x => x.id === cloud.activeId);
+    if (!p) return;
+    if (!p.githubRepo) { toast('No GitHub repo linked', 'err'); return; }
+    try {
+      const r = await api('POST', `/api/cloud/projects/${p.id}/sync`);
+      await refreshCloud();
+      openCloudDrawer(p.id);
+      toast(`Sync done · ${r.added || 0} new commit${(r.added||0)===1?'':'s'}`);
+    } catch (err) { toast(err.message, 'err'); }
+  });
+
+  document.getElementById('cloudDeleteProjectBtn').addEventListener('click', async () => {
+    const p = cloud.projects.find(x => x.id === cloud.activeId);
+    if (!p) return;
+    if (!confirm(`Delete "${p.name}" and all its versions?`)) return;
+    try {
+      await api('DELETE', `/api/cloud/projects/${p.id}`);
+      closeCloudDrawer();
+      await refreshCloud();
+      toast('Project deleted');
+    } catch (err) { toast(err.message, 'err'); }
+  });
+
+  document.getElementById('cloudNewProjectForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const submitBtn = document.getElementById('cloudNewProjectSubmit');
+    const label = document.getElementById('cloudNewProjectLabel');
+    submitBtn.disabled = true;
+    label.textContent = 'Creating…';
+    try {
+      const { project } = await api('POST', '/api/cloud/projects', {
+        name: fd.get('name'),
+        description: fd.get('description'),
+        githubRepo: fd.get('githubRepo'),
+        icon: cloud.pickedIcon,
+        cover: cloud.pickedCover,
+        owner: 'Ragavan T',
+      });
+      closeCloudModals();
+      await refreshCloud();
+      openCloudDrawer(project.id);
+      toast(project.githubRepo
+        ? `"${project.name}" created · ${(project.versions||[]).length} commit${(project.versions||[]).length===1?'':'s'} synced`
+        : `"${project.name}" created`);
+    } catch (err) {
+      toast(err.message, 'err');
+    } finally {
+      submitBtn.disabled = false;
+      label.textContent = 'Create project';
+    }
+  });
+
+  document.getElementById('cloudAddUrlBtn').addEventListener('click', () => openCloudModal('cloudAddLinkModal'));
+
+  document.getElementById('cloudAddLinkForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const p = cloud.projects.find(x => x.id === cloud.activeId);
+    if (!p) return;
+    try {
+      await api('POST', `/api/cloud/projects/${p.id}/versions`, {
+        type: 'url',
+        url: fd.get('url'),
+        name: fd.get('name') || '',
+        notes: fd.get('notes') || '',
+      });
+      closeCloudModals();
+      await refreshCloud();
+      toast('Link added');
+    } catch (err) { toast(err.message, 'err'); }
+  });
+
+  document.getElementById('cloudUploadBtn').addEventListener('click', () => {
+    const inp = document.getElementById('cloudUploadInput');
+    inp.value = '';
+    inp.click();
+  });
+
+  document.getElementById('cloudUploadInput').addEventListener('change', async () => {
+    const file = document.getElementById('cloudUploadInput').files[0];
+    if (!file) return;
+    const p = cloud.projects.find(x => x.id === cloud.activeId);
+    if (!p) return;
+    const name = prompt(`Label for "${file.name}":`, file.name) || file.name;
+    toast(`Uploading ${file.name}…`);
+    try {
+      const qs = new URLSearchParams({ filename: file.name, name }).toString();
+      const res = await fetch(`/api/cloud/projects/${p.id}/versions/upload?${qs}`, {
+        method: 'POST',
+        body: file,
+      });
+      if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
+      await refreshCloud();
+      toast('Upload complete');
+    } catch (err) { toast(err.message, 'err'); }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PROJECT PAGE — full-page view replacing the cloud drawer.
+  // Hash-routed (#project=<id>) so browser back works.
+  // ═══════════════════════════════════════════════════════════════════════
+  function openProjectPage(id) {
+    const p = cloud.projects.find(x => x.id === id);
+    if (!p) return;
+    cloud.activeId = id;
+    document.getElementById('dashboardView').classList.add('hidden');
+    document.getElementById('projectPage').classList.remove('hidden');
+    window.scrollTo(0, 0);
+    if (location.hash !== `#project=${id}`) {
+      history.pushState({ projectId: id }, '', `#project=${id}`);
+    }
+    renderProjectPage();
+  }
+
+  function closeProjectPage() {
+    cloud.activeId = null;
+    document.getElementById('projectPage').classList.add('hidden');
+    document.getElementById('dashboardView').classList.remove('hidden');
+    if (location.hash.startsWith('#project=')) {
+      history.pushState({}, '', location.pathname + location.search);
+    }
+  }
+
+  function renderProjectPage() {
+    const p = cloud.projects.find(x => x.id === cloud.activeId);
+    if (!p) { closeProjectPage(); return; }
+    document.getElementById('projectPageTitle').textContent = p.name;
+    const versions = (p.versions || []);
+    document.getElementById('projectPageVersionCount').textContent = versions.length;
+    document.getElementById('projectPageSynced').textContent =
+      p.lastSyncedAt ? ' · Synced ' + fmtRelative(p.lastSyncedAt) : '';
+    const repoEl = document.getElementById('projectPageRepo');
+    if (p.githubRepo) {
+      repoEl.href = 'https://github.com/' + p.githubRepo;
+      repoEl.querySelector('span').textContent = p.githubRepo;
+      repoEl.classList.remove('hidden');
+      repoEl.classList.add('inline-flex');
+    } else {
+      repoEl.classList.add('hidden');
+      repoEl.classList.remove('inline-flex');
+    }
+
+    const grid = document.getElementById('projectPageGrid');
+    const empty = document.getElementById('projectPageEmpty');
+    if (versions.length === 0) {
+      grid.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+    const sorted = versions.slice().sort((a, b) => b.createdAt - a.createdAt);
+    grid.innerHTML = sorted.map(v => previewTileHTML(p, v)).join('');
+
+    grid.querySelectorAll('[data-tile-vid]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.ptile-open')) return;
+        openPreviewModal(el.dataset.tileVid);
+      });
+    });
+  }
+
+  const TYPE_INFO = {
+    vercel:    { label: 'Vercel preview',   icon: 'triangle' },
+    netlify:   { label: 'Netlify preview',  icon: 'world' },
+    loom:      { label: 'Loom recording',   icon: 'video' },
+    youtube:   { label: 'YouTube video',    icon: 'brand-youtube' },
+    figma:     { label: 'Figma file',       icon: 'brand-figma' },
+    github:    { label: 'GitHub link',      icon: 'brand-github' },
+    gdrive:    { label: 'Google Drive',     icon: 'brand-google-drive' },
+    link:      { label: 'Web link',         icon: 'link' },
+    image:     { label: 'Image',            icon: 'photo' },
+    video:     { label: 'Video',            icon: 'video' },
+    file:      { label: 'File',             icon: 'file' },
+    commit:    { label: 'GitHub commit',    icon: 'git-commit' },
+  };
+
+  function typeInfo(v) {
+    if (v.type === 'commit') return TYPE_INFO.commit;
+    if (v.type === 'url') return TYPE_INFO[v.urlKind] || TYPE_INFO.link;
+    if (v.type === 'file') return TYPE_INFO[v.fileKind] || TYPE_INFO.file;
+    return TYPE_INFO.file;
+  }
+
+  function previewTileHTML(p, v) {
+    let inner = '';
+    let openHref = '';
+    const ti = typeInfo(v);
+
+    if (v.type === 'url') {
+      openHref = v.url;
+      const safeUrl = escapeHtml(v.url);
+      inner = `
+        <div class="ptile-fallback">
+          <i class="ti ti-${ti.icon} text-ink-400"></i>
+          <div class="ptile-host">${escapeHtml(safeHost(v.url))}</div>
+        </div>
+        <iframe class="ptile-iframe" src="${safeUrl}" sandbox="allow-same-origin allow-scripts" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
+    } else if (v.type === 'file' && v.fileKind === 'image') {
+      const url = `/uploads/${encodeURIComponent(p.id)}/${encodeURIComponent(v.storedName)}`;
+      openHref = url;
+      inner = `<img class="ptile-img" src="${url}" loading="lazy" alt="">`;
+    } else if (v.type === 'file' && v.fileKind === 'video') {
+      const url = `/uploads/${encodeURIComponent(p.id)}/${encodeURIComponent(v.storedName)}`;
+      openHref = url;
+      inner = `<video class="ptile-video" src="${url}" preload="metadata" muted playsinline></video>`;
+    } else if (v.type === 'file') {
+      const url = `/uploads/${encodeURIComponent(p.id)}/${encodeURIComponent(v.storedName)}`;
+      openHref = url;
+      inner = `<div class="ptile-fallback"><i class="ti ti-file text-ink-400"></i><div class="ptile-host">${escapeHtml(v.filename)}</div></div>`;
+    } else if (v.type === 'commit') {
+      const m = v.meta || {};
+      openHref = m.url || '';
+      const sha = m.shortSha || (m.sha || '').slice(0, 7);
+      inner = `
+        <div class="ptile-fallback" style="background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)">
+          ${m.avatar ? `<img src="${escapeHtml(m.avatar)}" style="height:56px;width:56px;border-radius:50%" alt="">` : `<i class="ti ti-git-commit text-ink-400"></i>`}
+          <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:#475569">${escapeHtml(sha)}</div>
+          ${m.message ? `<div class="ptile-host" style="font-size:12px;color:#334155;max-width:90%;-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml(m.message)}</div>` : ''}
+        </div>`;
+    }
+
+    const openBtn = openHref ? `
+      <a href="${escapeHtml(openHref)}" target="_blank" rel="noopener"
+         class="ptile-open" title="Open in new tab"
+         onclick="event.stopPropagation()">
+        <i class="ti ti-external-link"></i> Open
+      </a>` : '';
+
+    return `
+      <div class="ptile">
+        <div class="ptile-frame" data-tile-vid="${v.id}">
+          ${inner}
+          <span class="ptile-badge">${escapeHtml(v.label)}</span>
+          ${openBtn}
+        </div>
+        <div class="ptile-label">${escapeHtml(v.name || v.label)}</div>
+        <div class="ptile-sub"><i class="ti ti-${ti.icon}"></i>${escapeHtml(ti.label)}</div>
+      </div>`;
+  }
+
+  function safeHost(u) {
+    try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u || ''; }
+  }
+
+  // Wire project page controls
+  document.getElementById('projectBackBtn').addEventListener('click', () => {
+    history.back();
+  });
+
+  document.getElementById('projectPageSyncBtn').addEventListener('click', async () => {
+    const p = cloud.projects.find(x => x.id === cloud.activeId);
+    if (!p) return;
+    if (!p.githubRepo) { toast('No GitHub repo linked', 'err'); return; }
+    try {
+      const r = await api('POST', `/api/cloud/projects/${p.id}/sync`);
+      await refreshCloud();
+      renderProjectPage();
+      toast(`Sync done · ${r.added || 0} new commit${(r.added||0)===1?'':'s'}`);
+    } catch (err) { toast(err.message, 'err'); }
+  });
+
+  document.getElementById('projectPageAddBtn').addEventListener('click', () => openAddVersionModal());
+  document.getElementById('projectPageDeleteBtn').addEventListener('click', async () => {
+    const p = cloud.projects.find(x => x.id === cloud.activeId);
+    if (!p) return;
+    if (!confirm(`Delete "${p.name}" and all its versions?`)) return;
+    try {
+      await api('DELETE', `/api/cloud/projects/${p.id}`);
+      closeProjectPage();
+      await refreshCloud();
+      toast('Project deleted');
+    } catch (err) { toast(err.message, 'err'); }
+  });
+
+  // Hash routing — opens project on direct load or browser back/forward
+  window.addEventListener('popstate', () => {
+    const m = location.hash.match(/^#project=(.+)$/);
+    if (m && cloud.projects.find(x => x.id === m[1])) {
+      openProjectPage(m[1]);
+    } else {
+      closeProjectPage();
+    }
+  });
+
+  // On initial cloud load, if URL has a project hash, open it
+  const origInitCloud = initCloud;
+  initCloud = async function() {
+    await origInitCloud.call(this);
+    const m = location.hash.match(/^#project=(.+)$/);
+    if (m && cloud.projects.find(x => x.id === m[1])) {
+      openProjectPage(m[1]);
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ADD VERSION MODAL — unified upload + link.
+  // ═══════════════════════════════════════════════════════════════════════
+  const addVer = { mode: 'upload', file: null };
+
+  function openAddVersionModal() {
+    const p = cloud.projects.find(x => x.id === cloud.activeId);
+    if (!p) return;
+    document.getElementById('addVersionModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    setAddVerMode('upload');
+    document.getElementById('avFileInput').value = '';
+    document.getElementById('avUrlInput').value = '';
+    document.getElementById('avFilePreview').classList.add('hidden');
+    document.getElementById('avDropZone').classList.remove('hidden');
+    document.getElementById('avUrlKind').classList.add('hidden');
+    addVer.file = null;
+
+    const f = document.getElementById('addVersionForm');
+    f.reset();
+    document.getElementById('avLabel').value = nextVerLabel(p);
+    document.getElementById('avUploadedBy').value =
+      localStorage.getItem('zuper.uploaderName') || 'Ragavan T';
+  }
+
+  function closeAddVersionModal() {
+    document.getElementById('addVersionModal').classList.add('hidden');
+    if (document.getElementById('projectPage').classList.contains('hidden')) document.body.style.overflow = '';
+  }
+
+  function setAddVerMode(mode) {
+    addVer.mode = mode;
+    document.querySelectorAll('[data-av-tab]').forEach(b => {
+      const active = b.dataset.avTab === mode;
+      b.classList.toggle('bg-white', active);
+      b.classList.toggle('shadow-sm', active);
+      b.classList.toggle('text-ink-700', active);
+      b.classList.toggle('text-ink-500', !active);
+    });
+    document.querySelectorAll('[data-av-pane]').forEach(el => {
+      el.classList.toggle('hidden', el.dataset.avPane !== mode);
+    });
+  }
+
+  function nextVerLabel(p) {
+    const labels = (p.versions || []).map(v => v.label || '');
+    let major = 0, minor = 1;
+    for (const l of labels) {
+      const m = /^v(\d+)\.(\d+)$/.exec(l);
+      if (m) {
+        const M = +m[1], n = +m[2];
+        if (M > major || (M === major && n >= minor)) { major = M; minor = n + 1; }
+      }
+    }
+    return `v${major}.${minor}`;
+  }
+
+  function detectUrlKindClient(u) {
+    if (!u) return 'link';
+    try {
+      const h = new URL(u).hostname.toLowerCase();
+      if (h.includes('vercel.app') || h.includes('vercel.com')) return 'vercel';
+      if (h.includes('netlify.app')) return 'netlify';
+      if (h.includes('loom.com')) return 'loom';
+      if (h.includes('youtube.com') || h.includes('youtu.be')) return 'youtube';
+      if (h.includes('figma.com')) return 'figma';
+      if (h.includes('github.com')) return 'github';
+      if (h.includes('drive.google.com') || h.includes('docs.google.com')) return 'gdrive';
+      return 'link';
+    } catch { return 'link'; }
+  }
+
+  document.querySelectorAll('.closeAddVersionBtn').forEach(b => b.addEventListener('click', closeAddVersionModal));
+  document.querySelectorAll('#addVersionModal .modal-backdrop').forEach(b => b.addEventListener('click', closeAddVersionModal));
+  document.querySelectorAll('[data-av-tab]').forEach(b => b.addEventListener('click', () => setAddVerMode(b.dataset.avTab)));
+
+  // Drop zone + file picker
+  const avDropZone = document.getElementById('avDropZone');
+  const avFileInput = document.getElementById('avFileInput');
+  avDropZone.addEventListener('click', () => avFileInput.click());
+  avFileInput.addEventListener('change', () => setAddVerFile(avFileInput.files && avFileInput.files[0]));
+  ['dragenter','dragover'].forEach(evt => avDropZone.addEventListener(evt, (e) => {
+    e.preventDefault(); avDropZone.classList.add('border-brand-500','bg-brand-50');
+  }));
+  ['dragleave','drop'].forEach(evt => avDropZone.addEventListener(evt, (e) => {
+    e.preventDefault(); avDropZone.classList.remove('border-brand-500','bg-brand-50');
+  }));
+  avDropZone.addEventListener('drop', (e) => {
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) setAddVerFile(f);
+  });
+  document.getElementById('avFileClear').addEventListener('click', () => {
+    addVer.file = null;
+    document.getElementById('avFileInput').value = '';
+    document.getElementById('avFilePreview').classList.add('hidden');
+    document.getElementById('avDropZone').classList.remove('hidden');
+  });
+
+  function setAddVerFile(file) {
+    if (!file) return;
+    addVer.file = file;
+    document.getElementById('avDropZone').classList.add('hidden');
+    document.getElementById('avFilePreview').classList.remove('hidden');
+    document.getElementById('avFileName').textContent = file.name;
+    document.getElementById('avFileMeta').textContent = `${fmtBytes(file.size)} · ${file.type || 'file'}`;
+    const thumb = document.getElementById('avFileThumb');
+    if (file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file);
+      thumb.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
+    } else if (file.type.startsWith('video/')) {
+      thumb.innerHTML = `<i class="ti ti-video text-2xl"></i>`;
+    } else {
+      thumb.innerHTML = `<i class="ti ti-file text-2xl"></i>`;
+    }
+    // Default title to filename without extension if title empty.
+    const titleInp = document.querySelector('#addVersionForm [name="name"]');
+    if (titleInp && !titleInp.value) {
+      titleInp.value = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+    }
+  }
+
+  document.getElementById('avUrlInput').addEventListener('input', (e) => {
+    const url = e.target.value.trim();
+    const badge = document.getElementById('avUrlKind');
+    if (!url) { badge.classList.add('hidden'); return; }
+    const kind = detectUrlKindClient(url);
+    badge.classList.remove('hidden');
+    const icon = { vercel:'triangle', netlify:'world', loom:'video', youtube:'brand-youtube', figma:'brand-figma', github:'brand-github', gdrive:'brand-google-drive' }[kind] || 'link';
+    badge.innerHTML = `<i class="ti ti-${icon} text-sm"></i><span>${kind}</span>`;
+  });
+
+  document.getElementById('addVersionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const p = cloud.projects.find(x => x.id === cloud.activeId);
+    if (!p) return;
+    const fd = new FormData(e.target);
+    const submit = document.getElementById('avSubmit');
+    submit.disabled = true;
+    const origLabel = submit.textContent;
+    submit.textContent = 'Saving…';
+
+    const common = {
+      label: (fd.get('label') || '').trim(),
+      name: (fd.get('name') || '').trim(),
+      description: (fd.get('description') || '').trim(),
+      status: fd.get('status') || 'draft',
+      uploadedBy: (fd.get('uploadedBy') || '').trim() || 'Anonymous',
+    };
+    localStorage.setItem('zuper.uploaderName', common.uploadedBy);
+
+    try {
+      if (addVer.mode === 'link') {
+        const url = document.getElementById('avUrlInput').value.trim();
+        if (!url) { toast('Paste a URL first', 'err'); submit.disabled = false; submit.textContent = origLabel; return; }
+        await api('POST', `/api/cloud/projects/${p.id}/versions`, { type: 'url', url, ...common });
+      } else {
+        const file = addVer.file;
+        if (!file) { toast('Drop a file first', 'err'); submit.disabled = false; submit.textContent = origLabel; return; }
+        const qs = new URLSearchParams({ filename: file.name, ...common }).toString();
+        const res = await fetch(`/api/cloud/projects/${p.id}/versions/upload?${qs}`, { method: 'POST', body: file });
+        if (!res.ok) {
+          const errText = await res.text();
+          let msg; try { msg = JSON.parse(errText).error; } catch { msg = `HTTP ${res.status}`; }
+          throw new Error(msg);
+        }
+      }
+      closeAddVersionModal();
+      await refreshCloud();
+      renderProjectPage();
+      toast('Version added');
+    } catch (err) {
+      toast(err.message, 'err');
+    } finally {
+      submit.disabled = false;
+      submit.textContent = origLabel;
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PREVIEW MODAL — Mobbin-style large preview + details + comments.
+  // ═══════════════════════════════════════════════════════════════════════
+  const preview = { projectId: null, versionId: null };
+
+  function openPreviewModal(vid) {
+    const p = cloud.projects.find(x => x.id === cloud.activeId);
+    if (!p) return;
+    const v = (p.versions || []).find(x => x.id === vid);
+    if (!v) return;
+    preview.projectId = p.id;
+    preview.versionId = vid;
+    renderPreviewModal();
+    document.getElementById('previewModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closePreviewModal() {
+    document.getElementById('previewModal').classList.add('hidden');
+    // Stop any playing video to free resources.
+    const pv = document.getElementById('pmPreview');
+    pv.innerHTML = '';
+    preview.projectId = null;
+    preview.versionId = null;
+    if (document.getElementById('projectPage').classList.contains('hidden')) document.body.style.overflow = '';
+  }
+
+  function renderPreviewModal() {
+    const p = cloud.projects.find(x => x.id === preview.projectId);
+    const v = p && (p.versions || []).find(x => x.id === preview.versionId);
+    if (!p || !v) { closePreviewModal(); return; }
+
+    const badge = document.getElementById('pmBadge');
+    const kindLabel = v.type === 'commit' ? 'commit'
+                    : v.type === 'url' ? (v.urlKind || 'link')
+                    : v.fileKind || 'file';
+    badge.textContent = kindLabel;
+
+    document.getElementById('pmTitle').textContent = v.name || v.label;
+    document.getElementById('pmLabel').textContent = v.label;
+    document.getElementById('pmDetailLabel').textContent = v.label;
+    document.getElementById('pmDetailDesc').textContent = v.description || v.notes || '—';
+    document.getElementById('pmDetailUploadedBy').textContent = v.uploadedBy || '—';
+    document.getElementById('pmDetailCreated').textContent =
+      new Date(v.createdAt).toLocaleString();
+    const s = STATUS_STYLES[v.status] || STATUS_STYLES.draft;
+    document.getElementById('pmDetailStatus').innerHTML =
+      `<span class="inline-flex items-center gap-1 h-5 px-1.5 rounded ${s.classes} text-[10.5px] font-medium">${s.label}</span>`;
+
+    const urlRow = document.getElementById('pmDetailUrlRow');
+    const fileRow = document.getElementById('pmDetailFileRow');
+    const shaRow = document.getElementById('pmDetailShaRow');
+    urlRow.classList.add('hidden'); fileRow.classList.add('hidden'); shaRow.classList.add('hidden');
+
+    let openHref = '';
+    const pane = document.getElementById('pmPreview');
+    pane.innerHTML = '';
+
+    if (v.type === 'url' && v.url) {
+      openHref = v.url;
+      urlRow.classList.remove('hidden');
+      const a = document.getElementById('pmDetailUrl');
+      a.href = v.url; a.textContent = v.url;
+      pane.innerHTML = `<iframe src="${escapeHtml(v.url)}" class="w-full h-full" sandbox="allow-same-origin allow-scripts allow-popups allow-forms" referrerpolicy="no-referrer" style="border:0;background:#fff"></iframe>`;
+    } else if (v.type === 'file') {
+      const fileUrl = `/uploads/${encodeURIComponent(p.id)}/${encodeURIComponent(v.storedName)}`;
+      openHref = fileUrl;
+      fileRow.classList.remove('hidden');
+      document.getElementById('pmDetailFile').textContent = `${v.filename} · ${fmtBytes(v.size)}`;
+      if (v.fileKind === 'image') {
+        pane.innerHTML = `<img src="${fileUrl}" class="max-w-full max-h-full object-contain">`;
+      } else if (v.fileKind === 'video') {
+        pane.innerHTML = `<video src="${fileUrl}" controls autoplay class="max-w-full max-h-full"></video>`;
+      } else {
+        pane.innerHTML = `<div class="text-center p-8"><i class="ti ti-file text-6xl text-ink-400"></i><p class="mt-3 text-ink-600">${escapeHtml(v.filename)}</p><a href="${fileUrl}" download class="mt-3 inline-flex items-center gap-1.5 text-brand-600"><i class="ti ti-download"></i> Download</a></div>`;
+      }
+    } else if (v.type === 'commit') {
+      const m = v.meta || {};
+      openHref = m.url || '';
+      shaRow.classList.remove('hidden');
+      const a = document.getElementById('pmDetailSha');
+      a.href = m.url || '#'; a.textContent = m.shortSha || (m.sha || '').slice(0, 7);
+      pane.innerHTML = `
+        <div class="text-center px-8 py-12 max-w-md">
+          ${m.avatar ? `<img src="${escapeHtml(m.avatar)}" class="h-20 w-20 rounded-full mx-auto" alt="">` : `<div class="h-20 w-20 mx-auto rounded-full bg-ink-100 text-ink-500 flex items-center justify-center"><i class="ti ti-git-commit text-3xl"></i></div>`}
+          <div class="mt-4 font-mono text-sm text-ink-500">${escapeHtml(m.shortSha || (m.sha||'').slice(0,7))}</div>
+          <div class="mt-3 text-lg font-semibold text-ink-900">${escapeHtml(m.message || '')}</div>
+          <div class="mt-2 text-sm text-ink-500">by ${escapeHtml(m.author || 'unknown')}</div>
+          ${m.url ? `<a href="${escapeHtml(m.url)}" target="_blank" rel="noopener" class="mt-4 inline-flex items-center gap-1.5 text-brand-600 hover:underline"><i class="ti ti-brand-github"></i> View on GitHub</a>` : ''}
+        </div>`;
+    }
+
+    const openLink = document.getElementById('pmOpenNew');
+    if (openHref) { openLink.href = openHref; openLink.classList.remove('hidden'); }
+    else openLink.classList.add('hidden');
+
+    renderComments();
+  }
+
+  function renderComments() {
+    const p = cloud.projects.find(x => x.id === preview.projectId);
+    const v = p && (p.versions || []).find(x => x.id === preview.versionId);
+    if (!p || !v) return;
+    const list = document.getElementById('pmComments');
+    const comments = (v.comments || []).slice().sort((a, b) => a.createdAt - b.createdAt);
+    document.getElementById('pmCommentCount').textContent = comments.length ? `(${comments.length})` : '';
+    if (comments.length === 0) {
+      list.innerHTML = `<div class="text-[12.5px] text-ink-400 italic py-2">No comments yet — start the conversation.</div>`;
+      return;
+    }
+    const myName = localStorage.getItem('zuper.uploaderName') || '';
+    list.innerHTML = comments.map(c => {
+      const initials = (c.author || '?').split(/\s+/).map(s => s[0]).join('').slice(0, 2).toUpperCase();
+      const mine = c.author === myName;
+      return `
+        <div class="flex gap-2 group">
+          <div class="h-7 w-7 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white text-[10px] font-semibold flex items-center justify-center shrink-0">${escapeHtml(initials)}</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="text-[12px] font-semibold text-ink-800 truncate">${escapeHtml(c.author)}</span>
+              <span class="text-[11px] text-ink-400">${fmtRelative(c.createdAt)}</span>
+              ${mine ? `<button data-del-comment="${c.id}" class="ml-auto opacity-0 group-hover:opacity-100 text-ink-400 hover:text-red-600 text-[11px]" title="Delete">Delete</button>` : ''}
+            </div>
+            <div class="text-[13px] text-ink-800 whitespace-pre-wrap break-words">${escapeHtml(c.text)}</div>
+          </div>
+        </div>`;
+    }).join('');
+    list.querySelectorAll('[data-del-comment]').forEach(b => {
+      b.addEventListener('click', async () => {
+        const cid = b.dataset.delComment;
+        try {
+          await api('DELETE', `/api/cloud/projects/${preview.projectId}/versions/${preview.versionId}/comments/${cid}`);
+          await refreshCloud();
+          renderComments();
+        } catch (err) { toast(err.message, 'err'); }
+      });
+    });
+  }
+
+  document.getElementById('pmClose').addEventListener('click', closePreviewModal);
+  document.getElementById('previewBackdrop').addEventListener('click', closePreviewModal);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('previewModal').classList.contains('hidden')) {
+      closePreviewModal();
+    }
+  });
+
+  document.getElementById('pmCommentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const ta = document.getElementById('pmCommentText');
+    const text = ta.value.trim();
+    if (!text) return;
+    let author = localStorage.getItem('zuper.uploaderName');
+    if (!author) {
+      author = prompt('Your name (saved locally so we remember next time):', '');
+      if (!author) return;
+      localStorage.setItem('zuper.uploaderName', author);
+    }
+    try {
+      await api('POST', `/api/cloud/projects/${preview.projectId}/versions/${preview.versionId}/comments`, { author, text });
+      ta.value = '';
+      await refreshCloud();
+      renderComments();
+    } catch (err) { toast(err.message, 'err'); }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PREVIEW MODAL KEBAB + EDIT VERSION
+  // ═══════════════════════════════════════════════════════════════════════
+  const pmKebab = document.getElementById('pmKebab');
+  const pmKebabMenu = document.getElementById('pmKebabMenu');
+  pmKebab.addEventListener('click', (e) => {
+    e.stopPropagation();
+    pmKebabMenu.classList.toggle('hidden');
+  });
+  document.addEventListener('click', (e) => {
+    if (pmKebabMenu.classList.contains('hidden')) return;
+    if (!pmKebabMenu.contains(e.target) && e.target !== pmKebab) {
+      pmKebabMenu.classList.add('hidden');
+    }
+  });
+
+  pmKebabMenu.querySelectorAll('[data-pm-action]').forEach(b => {
+    b.addEventListener('click', async () => {
+      pmKebabMenu.classList.add('hidden');
+      const action = b.dataset.pmAction;
+      if (action === 'edit') {
+        openEditVersionModal();
+      } else if (action === 'delete') {
+        if (!confirm('Delete this version? This cannot be undone.')) return;
+        try {
+          await api('DELETE', `/api/cloud/projects/${preview.projectId}/versions/${preview.versionId}`);
+          const pid = preview.projectId;
+          closePreviewModal();
+          await refreshCloud();
+          if (cloud.activeId === pid) renderProjectPage();
+          toast('Version deleted');
+        } catch (err) { toast(err.message, 'err'); }
+      }
+    });
+  });
+
+  function openEditVersionModal() {
+    const p = cloud.projects.find(x => x.id === preview.projectId);
+    const v = p && (p.versions || []).find(x => x.id === preview.versionId);
+    if (!v) return;
+    const f = document.getElementById('editVersionForm');
+    f.reset();
+    f.querySelector('[name="label"]').value = v.label || '';
+    f.querySelector('[name="name"]').value = v.name || '';
+    f.querySelector('[name="description"]').value = v.description || '';
+    f.querySelector('[name="uploadedBy"]').value = v.uploadedBy || '';
+    const status = v.status || 'draft';
+    const radio = f.querySelector(`[name="status"][value="${status}"]`);
+    if (radio) radio.checked = true;
+    const urlRow = document.getElementById('evUrlRow');
+    if (v.type === 'url') {
+      urlRow.classList.remove('hidden');
+      f.querySelector('[name="url"]').value = v.url || '';
+    } else {
+      urlRow.classList.add('hidden');
+    }
+    document.getElementById('editVersionModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeEditVersionModal() {
+    document.getElementById('editVersionModal').classList.add('hidden');
+    if (document.getElementById('previewModal').classList.contains('hidden') &&
+        document.getElementById('projectPage').classList.contains('hidden')) {
+      document.body.style.overflow = '';
+    }
+  }
+
+  document.querySelectorAll('.closeEditVersionBtn').forEach(b => b.addEventListener('click', closeEditVersionModal));
+  document.querySelectorAll('#editVersionModal .modal-backdrop').forEach(b => b.addEventListener('click', closeEditVersionModal));
+
+  document.getElementById('editVersionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const body = {
+      label: fd.get('label'),
+      name: fd.get('name'),
+      description: fd.get('description'),
+      status: fd.get('status'),
+      uploadedBy: fd.get('uploadedBy'),
+    };
+    const urlVal = fd.get('url');
+    if (urlVal != null && !document.getElementById('evUrlRow').classList.contains('hidden')) {
+      body.url = urlVal;
+    }
+    try {
+      await api('PATCH', `/api/cloud/projects/${preview.projectId}/versions/${preview.versionId}`, body);
+      closeEditVersionModal();
+      await refreshCloud();
+      renderPreviewModal();
+      toast('Version updated');
+    } catch (err) { toast(err.message, 'err'); }
+  });
+
   </script>
 </body>
 </html>
